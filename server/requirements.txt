@@ -2,3 +2,4 @@ requests
 sqlalchemy
 flask
 flask_httpauth
+tldextract
