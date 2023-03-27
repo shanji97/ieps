@@ -37,5 +37,9 @@ class Site(Base):
     __table__ = Base.metadata.tables['site']
 
 
+class Ip(Base):
+    __table__ = Base.metadata.tables['ip']
+
+
 class Counters(Base):
     __table__ = Base.metadata.tables['counters']

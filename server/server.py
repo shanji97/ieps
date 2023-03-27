@@ -11,6 +11,7 @@ from flask import jsonify
 from flask_httpauth import HTTPBasicAuth
 import tldextract
 import constants
+import socket
 
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +31,9 @@ session = scoped_session(
 
 USERNAME = "fri"
 PASSWORD = "fri-pass"
+
+SECOND_BETWEEN_IP_REQUESTS = 5
+OLDER_THAN_SECONDS = 5 * 60
 
 
 @basic_auth.verify_password
@@ -55,54 +59,32 @@ def internal_error(_):
     return jsonify({"success": False, "message": "Server error!"}), 500
 
 
-@app.route('/db/get_counter_values', methods=['GET'])
-@basic_auth.login_required
-def fl_get_values():
-    results = session.query(Counters).all()
-    results = [{
-        "id": r.counter_id,
-        "value": r.value
-    } for r in results]
-    return jsonify(results)
-
-
-@app.route('/db/reset_counter_values', methods=['POST'])
-@basic_auth.login_required
-def fl_restart():
-    session.query(Counters).update({'value': 0})
-    session.commit()
-    return jsonify({"success": True})
-
-
-@app.route('/db/get_data_types', methods=['GET'])
-@basic_auth.login_required
-def get_data_types():
-    results = session.query(DataType).all()
-    return jsonify([d.code for d in results])
-
-
 @app.route('/db/get_next_page_url', methods=['GET'])
 @basic_auth.login_required
 def get_next_page_url():
     current_time = datetime.datetime.now()
 
-    # select non parsed and pages that have been parsing for more than 5 minutes
-    to_parse_url = session.query(Page) \
+    # select non parsed pages and pages that have been parsing for more than 5 minutes
+    to_parse_url = session.query(Page, Site, Ip) \
         .order_by(Page.parse_status, Page.parse_status_change_time) \
-        .filter(or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
+        .filter(Page.site_id == Site.id, Ip.domain == Site.domain,
+                extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= SECOND_BETWEEN_IP_REQUESTS,
+                or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
                     and_(Page.parse_status == constants.PARSE_STATUS_PARSING,
-                         extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= 5 * 60))).first()
+                         extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= OLDER_THAN_SECONDS))).first()
 
     if not to_parse_url:
         return jsonify({"url": None}), 200
 
-    return jsonify({"url": [to_parse_url.url, to_parse_url.parse_status_change_time, to_parse_url.parse_status]}), 200
+    session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
+    session.commit()
+
+    return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip}), 200
 
 
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
 def insert_page_unparsed():
-    print("neki")
     request_json = request.json
 
     url = request_json["url"]
@@ -112,11 +94,17 @@ def insert_page_unparsed():
 
     site_url_extract = tldextract.extract(url)
     domain = site_url_extract.domain + "." + site_url_extract.suffix
+    try:
+        ip = socket.gethostbyname(domain)
+    except socket.gaierror:
+        ip = None
 
     # Add site if it doesn't exist
     site = get_or_create_site(session, domain, robots_content, sitemap_content)
     if not site:
         return jsonify({"success": False, "message": "Site add failed!"}), 500
+
+    _ = get_or_create_ip(session, ip, domain)
 
     # Add page
     page = create_page(
@@ -135,6 +123,9 @@ def insert_page_unparsed():
     if not link:
         return jsonify({"success": False, "message": "Link add failed!"}), 500
 
+    site.last_time_accessed = datetime.datetime.now()
+    session.commit()
+
     return jsonify({"success": True, "message": "Page added!", "added_page_id": page.id}), 200
 
 
@@ -146,21 +137,27 @@ def insert_page():
     url = request_json["url"]
     site_url_extract = tldextract.extract(url)
     domain = site_url_extract.domain + "." + site_url_extract.suffix
+    try:
+        ip = socket.gethostbyname(domain)
+    except socket.gaierror:
+        ip = None
 
     # Add site if it doesn't exist
     site = get_or_create_site(session, domain, request_json["robots_content"], request_json["sitemap_content"])
     if not site:
         return jsonify({"success": False, "message": "Site add failed!"}), 500
 
+    _ = get_or_create_ip(session, ip, domain)
+
     # Add page
     page = create_page(
-        session,
-        site.id,
-        request_json["page_type_code"],
-        url + str(time.time()),
-        request_json["html_content"],
-        request_json["http_status_code"],
-        request_json["accessed_time"])
+        session=session,
+        site_id=site.id,
+        page_type_code=request_json["page_type_code"],
+        url=url + str(time.time()),
+        html_content=request_json["html_content"],
+        http_status_code=request_json["http_status_code"],
+        accessed_time=request_json["accessed_time"])
     if not page:
         return jsonify({"success": False, "message": "Page add failed!"}), 500
 
@@ -168,6 +165,9 @@ def insert_page():
     link = create_link(session, request_json["from_page_id"], page.id)
     if not link:
         return jsonify({"success": False, "message": "Link add failed!"}), 500
+
+    site.last_accessed_time = datetime.datetime.now()
+    session.commit()
 
     return jsonify({"success": True, "message": "Page added!", "added_page_id": page.id}), 200
 
@@ -190,6 +190,26 @@ def get_or_create_site(session, domain, robots_content, sitemap_content):
             logging.error("Site add failed: {}".format(e))
             return None
     return site
+
+
+def get_or_create_ip(session, ip, domain):
+    ip_object = session.query(Ip).filter(Ip.ip == ip, Ip.domain == domain).first()
+    if not ip_object:
+        try:
+            ip_object = Ip(
+                ip=ip,
+                domain=domain,
+                last_time_accessed=datetime.datetime.now())
+            session.add(ip_object)
+            session.commit()
+            logging.info("IP added: {}".format(ip_object.ip))
+            return ip_object
+        except Exception as e:
+            session.rollback()
+            session.close()
+            logging.error("IP add failed: {}".format(e))
+            return None
+    return ip_object
 
 
 def create_page(session, site_id, page_type_code, url, html_content, http_status_code, accessed_time):
