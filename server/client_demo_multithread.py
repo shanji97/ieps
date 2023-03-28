@@ -1,6 +1,8 @@
 import requests
 from requests.auth import HTTPBasicAuth
 import concurrent.futures
+import constants
+import time
 #import threading
 
 username = "fri"
@@ -24,6 +26,7 @@ def multithread_crawler(worker_id):
                     data = parse_page(url)
                     # TODO: add data to db
                     # TODO: change status to parsed
+                    #update_parse_status(url, constants.PARSE_STATUS_PARSED)
                 else:
                     page_available = False
                     print(worker_id , ": No pages available")
@@ -33,11 +36,26 @@ def multithread_crawler(worker_id):
 
         except Exception as err:
             print(worker_id, err)
+            time.sleep(1)
             
 
 def parse_page(url):
     # TODO
     return None
+
+def update_parse_status(url, status):
+    response = requests.post(
+     'http://127.0.0.1:8000/db/update_parse_status',
+     auth=HTTPBasicAuth(username, password),
+     json={
+         "url": url,
+         "parse_status": status,
+     })
+
+    if response.status_code == 200:
+        print(response.json())
+    else:
+        raise Exception('Update parse status request failed with status code: ' + str(response.status_code))
 
 max_workers = 3
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:

@@ -12,6 +12,7 @@ from flask_httpauth import HTTPBasicAuth
 import tldextract
 import constants
 import socket
+import threading
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,8 @@ PASSWORD = "fri-pass"
 
 SECOND_BETWEEN_IP_REQUESTS = 5
 OLDER_THAN_SECONDS = 5 * 60
+
+lock = threading.Lock()
 
 
 @basic_auth.verify_password
@@ -62,25 +65,38 @@ def internal_error(_):
 @app.route('/db/get_next_page_url', methods=['GET'])
 @basic_auth.login_required
 def get_next_page_url():
-    current_time = datetime.datetime.now()
+    with lock:
+        current_time = datetime.datetime.now()
 
-    # select non parsed pages and pages that have been parsing for more than 5 minutes
-    to_parse_url = session.query(Page, Site, Ip) \
-        .order_by(Page.parse_status, Page.parse_status_change_time) \
-        .filter(Page.site_id == Site.id, Ip.domain == Site.domain,
-                extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= SECOND_BETWEEN_IP_REQUESTS,
-                or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
-                    and_(Page.parse_status == constants.PARSE_STATUS_PARSING,
-                         extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= OLDER_THAN_SECONDS))).first()
+        # select non parsed pages and pages that have been parsing for more than 5 minutes
+        to_parse_url = session.query(Page, Site, Ip) \
+            .order_by(Page.parse_status, Page.parse_status_change_time) \
+            .filter(Page.site_id == Site.id, Ip.domain == Site.domain,
+                    extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= SECOND_BETWEEN_IP_REQUESTS,
+                    or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
+                        and_(Page.parse_status == constants.PARSE_STATUS_PARSING,
+                            extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= OLDER_THAN_SECONDS))).first()
 
-    if not to_parse_url:
-        return jsonify({"url": None}), 200
+        if not to_parse_url:
+            return jsonify({"url": None}), 200
 
-    session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
-    session.commit()
+        session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
+        #session.query(Page).filter(Page.id == to_parse_url.Page.id)\
+            #.update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
+        session.commit()
 
     return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip}), 200
 
+
+@app.route('/db/update_parse_status', methods=['POST'])
+@basic_auth.login_required
+def update_parse_status():
+    request_json = request.json
+    current_time = datetime.datetime.now()
+    session.query(Page).filter(Page.url == request_json["url"]).update({'parse_status': request_json["parse_status"],  "parse_status_change_time": current_time})
+    session.commit()
+
+    return jsonify({"success": True, "message": "Parse status updated"}), 200
 
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
