@@ -85,7 +85,7 @@ def get_next_page_url():
             #.update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
         session.commit()
 
-    return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip}), 200
+    return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip, "id": to_parse_url.Page.id}), 200
 
 
 @app.route('/db/update_parse_status', methods=['POST'])
@@ -109,7 +109,7 @@ def insert_page_unparsed():
     from_page_id = request_json["from_page_id"]
 
     site_url_extract = tldextract.extract(url)
-    domain = site_url_extract.domain + "." + site_url_extract.suffix
+    domain =  site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
     try:
         ip = socket.gethostbyname(domain)
     except socket.gaierror:
@@ -152,7 +152,7 @@ def insert_page():
 
     url = request_json["url"]
     site_url_extract = tldextract.extract(url)
-    domain = site_url_extract.domain + "." + site_url_extract.suffix
+    domain =  site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
     try:
         ip = socket.gethostbyname(domain)
     except socket.gaierror:
@@ -206,6 +206,19 @@ def get_or_create_site(session, domain, robots_content, sitemap_content):
             logging.error("Site add failed: {}".format(e))
             return None
     return site
+
+
+@app.route('/db/get_robots_content', methods=['POST'])
+@basic_auth.login_required
+def get_robots_content():
+    request_json = request.json
+    url = request_json["url"]
+    site_url_extract = tldextract.extract(url)
+    domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
+    site = session.query(Site).filter(Site.domain == domain).first()
+    if not site:
+        return jsonify({"success": False, "message": "Site not found"}), 200
+    return jsonify({"success": True, "message": "Site found", "robots_content": site.robots_content}), 200
 
 
 def get_or_create_ip(session, ip, domain):
