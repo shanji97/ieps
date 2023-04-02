@@ -33,9 +33,6 @@ session = scoped_session(
 USERNAME = "fri"
 PASSWORD = "fri-pass"
 
-SECOND_BETWEEN_IP_REQUESTS = 5
-OLDER_THAN_SECONDS = 5 * 60
-
 lock = threading.Lock()
 
 
@@ -72,10 +69,10 @@ def get_next_page_url():
         to_parse_url = session.query(Page, Site, Ip) \
             .order_by(Page.parse_status, Page.parse_status_change_time) \
             .filter(Page.site_id == Site.id, Ip.domain == Site.domain,
-                    extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= SECOND_BETWEEN_IP_REQUESTS,
+                    extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= Ip.crawl_delay,
                     or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
                         and_(Page.parse_status == constants.PARSE_STATUS_PARSING,
-                            extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= OLDER_THAN_SECONDS))).first()
+                            extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= constants.OLDER_THAN_SECONDS_WHEN_PARSING))).first()
 
         if not to_parse_url:
             return jsonify({"url": None}), 200
@@ -108,6 +105,7 @@ def insert_page_unparsed():
     robots_content = request_json["robots_content"]
     sitemap_content = request_json["sitemap_content"]
     from_page_id = request_json["from_page_id"]
+    crawl_delay = request_json["crawl_delay"]
 
     site_url_extract = tldextract.extract(url)
     domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
@@ -121,7 +119,7 @@ def insert_page_unparsed():
     if not site:
         return jsonify({"success": False, "message": "Site add failed!"}), 500
 
-    _ = get_or_create_ip(session, ip, domain)
+    _ = get_or_create_ip(session, ip, domain, crawl_delay)
 
     # Add page
     page = create_page(
@@ -252,14 +250,15 @@ def get_or_create_site(session, domain, robots_content, sitemap_content):
     return site
 
 
-def get_or_create_ip(session, ip, domain):
+def get_or_create_ip(session, ip, domain, crawl_delay):
     ip_object = session.query(Ip).filter(Ip.ip == ip, Ip.domain == domain).first()
     if not ip_object:
         try:
             ip_object = Ip(
                 ip=ip,
                 domain=domain,
-                last_time_accessed=datetime.datetime.now())
+                last_time_accessed=datetime.datetime.now(),
+                crawl_delay=crawl_delay)
             session.add(ip_object)
             session.commit()
             logging.info("IP added: {}".format(ip_object.ip))

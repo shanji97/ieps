@@ -28,14 +28,14 @@ def multithread_crawler(worker_id):
                     # Store canonicalized URLs only!
 
                     # insert images from the page to db
-                    insert_page_images(page_id, new_images_urls)
+                    # insert_page_images(page_id, new_images_urls)
 
                     # insert new urls to to the frontier
                     new_urls = []
                     for new_url in new_urls:
                         insert_page_if_allowed(new_url, page_id)
 
-                    #update_parse_status(url, constants.PARSE_STATUS_PARSED)
+                    # update_parse_status(url, constants.PARSE_STATUS_PARSED)
                 else:
                     page_available = False
                     print(worker_id , ": No pages available")
@@ -186,17 +186,17 @@ def insert_page_if_allowed(url, from_page_id):
                 print(e)
                 sitemap_content = None
         if is_page_allowed(url, disallowed, allowed):
-            insert_page_unparsed(url, robots_content, sitemap_content, from_page_id)
+            insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay)
     elif robots_content is not None and len(robots_content) != 0:
         # Robots.txt exists
         disallowed, allowed, crawl_delay, sitemap = parse_robots_content(robots_content) # change if stored in db
         if is_page_allowed(url, disallowed, allowed):
-            insert_page_unparsed(url, robots_content, sitemap, from_page_id)
+            insert_page_unparsed(url, robots_content, sitemap, from_page_id, crawl_delay)
     else:
         # No robots.txt
-        insert_page_unparsed(url, None, None, from_page_id)
+        insert_page_unparsed(url, None, None, from_page_id, constants.DEFAULT_CRAWL_DELAY_SECONDS)
 
-def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id):
+def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay):
     """
     Send post request to server to insert unparsed page.
     """
@@ -207,7 +207,8 @@ def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id):
         "url": url,
         "robots_content": robots_content,
         "sitemap_content": sitemap_content,
-        "from_page_id": from_page_id
+        "from_page_id": from_page_id,
+        "crawl_delay": crawl_delay
     })
     if response.status_code == 200:
         print(response.json())
