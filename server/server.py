@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 
-from sqlalchemy import or_, and_, func, extract
+from sqlalchemy import or_, and_, extract
 
 from crawldb_model import *
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -98,6 +98,7 @@ def update_parse_status():
 
     return jsonify({"success": True, "message": "Parse status updated"}), 200
 
+
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
 def insert_page_unparsed():
@@ -153,14 +154,53 @@ def update_page_info():
     page_id = request_json["page_id"]
     html_content = request_json["html_content"]
     page_type_code = request_json["page_type_code"]
-    session.query(Page).filter(Page.id == page_id).update(
-        {'html_content': html_content,
-         "page_type_code": page_type_code
+    session.query(Page).filter(Page.id == page_id).update({
+        "html_content": html_content,
+        "page_type_code": page_type_code
     })
     session.commit()
 
     return jsonify({"success": True, "message": "Page updated!"}), 200
 
+
+@app.route('/db/insert_page_data', methods=['POST'])
+@basic_auth.login_required
+def insert_page_data():
+    request_json = request.json
+
+    page_id = request_json["page_id"]
+    data_type_code = request_json["data_type_code"]
+    data = request_json["data"]
+
+    page_data = create_page_data(session, page_id, data_type_code, data)
+
+    if not page_data:
+        return jsonify({"success": False, "message": "Page data add failed!"}), 500
+
+    return jsonify({"success": True, "message": "Page data added!"}), 200
+
+
+@app.route('/db/get_robots_content', methods=['POST'])
+@basic_auth.login_required
+def get_robots_content():
+    request_json = request.json
+    url = request_json["url"]
+    site_url_extract = tldextract.extract(url)
+    domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
+    site = session.query(Site).filter(Site.domain == domain).first()
+    if not site:
+        return jsonify({"success": False, "message": "Site not found"}), 200
+    return jsonify({"success": True, "message": "Site found", "robots_content": site.robots_content}), 200
+
+
+def create_page_data(session, page_id, data_type_code, data):
+    page_data = PageData(
+        page_id=page_id,
+        data_type_code=data_type_code,
+        data=str.encode(data))
+    session.add(page_data)
+    session.commit()
+    return page_data
 
 def get_or_create_site(session, domain, robots_content, sitemap_content):
     site = session.query(Site).filter(Site.domain == domain).first()
@@ -180,19 +220,6 @@ def get_or_create_site(session, domain, robots_content, sitemap_content):
             logging.error("Site add failed: {}".format(e))
             return None
     return site
-
-
-@app.route('/db/get_robots_content', methods=['POST'])
-@basic_auth.login_required
-def get_robots_content():
-    request_json = request.json
-    url = request_json["url"]
-    site_url_extract = tldextract.extract(url)
-    domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
-    site = session.query(Site).filter(Site.domain == domain).first()
-    if not site:
-        return jsonify({"success": False, "message": "Site not found"}), 200
-    return jsonify({"success": True, "message": "Site found", "robots_content": site.robots_content}), 200
 
 
 def get_or_create_ip(session, ip, domain):

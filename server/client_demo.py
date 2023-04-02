@@ -1,22 +1,22 @@
 import requests
 from requests.auth import HTTPBasicAuth
+import constants
 
 username = "fri"
 password = "fri-pass"
 
-# response = requests.post(
-#     'http://127.0.0.1:8000/db/insert_page_unparsed',
-#     auth=HTTPBasicAuth(username, password),
-#     json={
-#         "url": "https://www.google.net/",
-#         "from_page_id": 0,
-#         "robots_content": "",
-#         "sitemap_content": "",
-#     })
+response = requests.post(
+    'http://127.0.0.1:8000/db/insert_page_data',
+    auth=HTTPBasicAuth(username, password),
+    json={
+        "page_id": 143,
+        "data_type_code": constants.DATA_TYPE_DOC,
+        "data": "drek"
+    })
 
-response = requests.get(
-    'http://127.0.0.1:8000/db/get_next_page_url',
-    auth=HTTPBasicAuth(username, password))
+# response = requests.get(
+#     'http://127.0.0.1:8000/db/get_next_page_url',
+#     auth=HTTPBasicAuth(username, password))
 
 if response.status_code == 200:
     print(response.json())
