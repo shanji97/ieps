@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 import time
 
 from sqlalchemy import or_, and_, func, extract
@@ -147,19 +148,45 @@ def insert_page_unparsed():
 
 @app.route('/db/update_page_info', methods=['POST'])
 @basic_auth.login_required
-def update_page_info():
+def update_page_html():
     request_json = request.json
 
-    page_id = request_json["page_id"]
-    html_content = request_json["html_content"]
-    page_type_code = request_json["page_type_code"]
-    session.query(Page).filter(Page.id == page_id).update(
-        {'html_content': html_content,
-         "page_type_code": page_type_code
-    })
+    url = request_json["url"]
+    site_url_extract = tldextract.extract(url)
+    domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
+    try:
+        ip = socket.gethostbyname(domain)
+    except socket.gaierror:
+        ip = None
+
+    # Add site if it doesn't exist
+    site = get_or_create_site(session, domain, request_json["robots_content"], request_json["sitemap_content"])
+    if not site:
+        return jsonify({"success": False, "message": "Site add failed!"}), 500
+
+    _ = get_or_create_ip(session, ip, domain)
+
+    # Add page
+    page = create_page(
+        session=session,
+        site_id=site.id,
+        page_type_code=request_json["page_type_code"],
+        url=url + str(time.time()),
+        html_content=request_json["html_content"],
+        http_status_code=request_json["http_status_code"],
+        accessed_time=request_json["accessed_time"])
+    if not page:
+        return jsonify({"success": False, "message": "Page add failed!"}), 500
+
+    # Add link
+    link = create_link(session, request_json["from_page_id"], page.id)
+    if not link:
+        return jsonify({"success": False, "message": "Link add failed!"}), 500
+
+    site.last_accessed_time = datetime.datetime.now()
     session.commit()
 
-    return jsonify({"success": True, "message": "Page updated!"}), 200
+    return jsonify({"success": True, "message": "Page added!", "added_page_id": page.id}), 200
 
 
 def get_or_create_site(session, domain, robots_content, sitemap_content):
