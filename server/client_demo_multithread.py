@@ -5,6 +5,11 @@ import constants
 import time
 import tldextract
 
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import base64
+
 username = "fri"
 password = "fri-pass"
 
@@ -47,6 +52,42 @@ def multithread_crawler(worker_id):
             print(worker_id, err)
             time.sleep(1)
             
+def render_page_and_extract(url):
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    driver = webdriver.Chrome(options = chrome_options)
+    driver.get(url)
+    driver.implicitly_wait(5)
+    
+    #Get all 'a' tags:
+    links = driver.find_elements(By.TAG_NAME,'a')
+    valid_links = []
+    
+    for link in links:
+        url = link.get_attribute('href')
+        # Get only gov si links 
+        if url and 'gov.si' in url:
+            if url and 'gov.si/#' not in url:
+                valid_links.append(url)
+       
+    images = driver.find_elements(By.TAG_NAME,'img')   
+    valid_images = []
+    for img_element in images :
+    # Get the value of the src attribute
+        src = img_element.get_attribute('src')
+        if src:
+            if src.startswith('data:image/'):
+                # This is a base64-encoded image
+                # Decode the base64 data and save it to a file
+                encoded_data = src.split(',', 1)[1]
+                valid_images.append(encoded_data)
+               
+            else:
+                # This is an image with a URL
+                valid_images.append(src)
+                
+    return (valid_links, valid_images)
+
 
 def parse_page(page_id, url):
     # TODO
@@ -57,7 +98,7 @@ def parse_page(page_id, url):
         duplicate_id = is_duplicate(html_content)
         if is_duplicate(html_content) == -1:
             update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
-            # Extract links (attribute href, onlcick javascript events) and images (img tag, where src points to url) (selenium)
+            return render_page_and_extract(url)
             ...
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to duplicate_id (create functions on server and send post request)
