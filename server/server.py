@@ -180,6 +180,30 @@ def insert_page_data():
     return jsonify({"success": True, "message": "Page data added!"}), 200
 
 
+@app.route('/db/insert_page_images', methods=['POST'])
+@basic_auth.login_required
+def insert_page_images():
+    request_json = request.json
+
+    page_id = request_json["page_id"]
+    images_urls = request_json["images_urls"]
+
+    images_to_add = []
+    for image_url in images_urls:
+        content_type, data = download_image(image_url)
+        images_to_add.append(Image(
+            page_id=page_id,
+            filename=image_url,
+            content_type=content_type,
+            data=data,
+            accessed_time=datetime.datetime.now()))
+
+    session.bulk_save_objects(images_to_add)
+    session.commit()
+
+    return jsonify({"success": True, "message": "Page images added!"}), 200
+
+
 @app.route('/db/get_robots_content', methods=['POST'])
 @basic_auth.login_required
 def get_robots_content():
@@ -193,6 +217,11 @@ def get_robots_content():
     return jsonify({"success": True, "message": "Site found", "robots_content": site.robots_content}), 200
 
 
+def download_image(image_url):
+    # TODO download image and get content type
+    return "", str.encode("base64 encoded image data")
+
+
 def create_page_data(session, page_id, data_type_code, data):
     page_data = PageData(
         page_id=page_id,
@@ -201,6 +230,7 @@ def create_page_data(session, page_id, data_type_code, data):
     session.add(page_data)
     session.commit()
     return page_data
+
 
 def get_or_create_site(session, domain, robots_content, sitemap_content):
     site = session.query(Site).filter(Site.domain == domain).first()

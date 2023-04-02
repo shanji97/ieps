@@ -6,12 +6,14 @@ username = "fri"
 password = "fri-pass"
 
 response = requests.post(
-    'http://127.0.0.1:8000/db/insert_page_data',
+    'http://127.0.0.1:8000/db/insert_page_images',
     auth=HTTPBasicAuth(username, password),
     json={
         "page_id": 143,
-        "data_type_code": constants.DATA_TYPE_DOC,
-        "data": "drek"
+        "images_urls": [
+           "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
+           "https://f4n3x6c5.stackpathcdn.com/UploadFile/40e97e/content-type-as-metadata-frequently-asked-questions/Images/Content-Type-as-Metadata.jpg",
+        ]
     })
 
 # response = requests.get(

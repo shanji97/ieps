@@ -14,8 +14,8 @@ def multithread_crawler(worker_id):
     while page_available:
         try:
             response = requests.get(
-            'http://127.0.0.1:8000/db/get_next_page_url',
-            auth=HTTPBasicAuth(username, password))
+                'http://127.0.0.1:8000/db/get_next_page_url',
+                auth=HTTPBasicAuth(username, password))
             
             if response.status_code == 200:
                 if response.json()["url"] is not None:
@@ -24,11 +24,17 @@ def multithread_crawler(worker_id):
                     page_id = response.json()["id"]
 
                     # TODO: parse page and check for duplicate
-                    data = parse_page(page_id, url)
+                    new_urls, new_images_urls = parse_page(page_id, url)
                     # Store canonicalized URLs only!
+
+                    # insert images from the page to db
+                    insert_page_images(page_id, new_images_urls)
+
+                    # insert new urls to to the frontier
                     new_urls = []
                     for new_url in new_urls:
                         insert_page_if_allowed(new_url, page_id)
+
                     #update_parse_status(url, constants.PARSE_STATUS_PARSED)
                 else:
                     page_available = False
@@ -59,11 +65,11 @@ def parse_page(page_id, url):
     else:
         update_page_info(page_id, None, constants.PAGE_TYPE_BINARY)
         # Change page_type to Binary and add entry in table page_data with page_id equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx) 
-        #(create functions on server and send post request)
+        #(send post request /db/insert_page_data)
         ...
        
     # Return links and images
-    return None
+    return None, None
 
 def is_html(url):
     # TODO
@@ -98,6 +104,26 @@ def update_page_info(page_id, html_content, page_type_code):
 
     if response.status_code != 200:
         raise Exception('Updating html content failed with status code: ' + str(response.status_code))
+
+
+def insert_page_images(page_id, images_urls):
+    """
+    Insert images in db.
+
+    Input:
+    * page_id: id of the page
+    * images_urls: list of images urls
+    """
+    response = requests.post(
+        'http://127.0.0.1:8000/db/insert_page_images',
+        auth=HTTPBasicAuth(username, password),
+        json={
+            "page_id": page_id,
+            "images_urls": images_urls,
+        })
+
+    if response.status_code != 200:
+        raise Exception('Inserting images failed with status code: ' + str(response.status_code))
 
 def update_parse_status(url, status):
     """
