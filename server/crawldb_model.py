@@ -5,7 +5,10 @@ from sqlalchemy.orm import Session
 conn_str = "postgresql+psycopg2://orglce:5loFzWry6ZwC@ep-falling-block-598917.eu-central-1.aws.neon.tech/neondb"
 
 Base = sqlalchemy.orm.declarative_base()
-engine = create_engine(conn_str, connect_args={'options': '-csearch_path={}'.format('crawldb')})
+engine = create_engine(conn_str,
+                       connect_args={'options': '-csearch_path={}'.format('crawldb')},
+                       pool_size=30,
+                       max_overflow=0)
 Base.metadata.reflect(engine)
 
 

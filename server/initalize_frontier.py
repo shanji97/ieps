@@ -27,8 +27,8 @@ for url in seed_urls:
             "robots_content": "",
             "sitemap_content": "",
             "from_page_id": -1,
-            "crawl_delay": 50})  # TODO change back to constants.DEFAULT_CRAWL_DELAY_SECONDS
+            "crawl_delay": 5})  # TODO change back to constants.DEFAULT_CRAWL_DELAY_SECONDS
     if response_insert.status_code == 200:
-        print("Page inserted: " + url)
+        print("Seed page inserted: " + url)
     else:
         raise Exception("Page not inserted: " + url)

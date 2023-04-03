@@ -76,8 +76,8 @@ def get_next_page_url():
             return jsonify({"url": None}), 200
 
         session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
-        # session.query(Page).filter(Page.id == to_parse_url.Page.id)\
-        #     .update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
+        session.query(Page).filter(Page.id == to_parse_url.Page.id)\
+            .update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
         session.commit()
 
     return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip, "id": to_parse_url.Page.id}), 200
@@ -97,7 +97,6 @@ def update_parse_status():
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
 def insert_page_unparsed():
-    print("DDDDDDDDDDDDDDDDD")
     request_json = request.json
 
     url = request_json["url"]

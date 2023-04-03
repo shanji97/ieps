@@ -11,18 +11,15 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import base64
 
-username = "fri"
-password = "fri-pass"
-
-
 def multithread_crawler(worker_id):
     page_available = True
     while page_available:
         try:
-
+            print_from_thread(worker_id, "INFO", "Getting next page")
             response = requests.get(
                 'http://127.0.0.1:8000/db/get_next_page_url',
-                auth=HTTPBasicAuth(username, password))
+                auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD))
+            print_from_thread(worker_id, "INFO", "Got next page: " + str(response.json()))
 
             if response.status_code == 200:
                 if response.json()["url"] is not None:
@@ -39,15 +36,14 @@ def multithread_crawler(worker_id):
                     # insert_page_images(page_id, new_images_urls)
 
                     # insert new urls to to the frontier
-                    # new_urls = []
-                    # for new_url in new_urls:
-                    #     insert_page_if_allowed(new_url, page_id)
+                    for new_url in new_urls:
+                        insert_page_if_allowed(new_url, page_id)
 
                     # update_parse_status(url, constants.PARSE_STATUS_PARSED)
                     print_from_thread(worker_id, "PARSED", url)
-                else:
-                    page_available = False
-                    print(worker_id , ": No pages available")
+                # else:
+                    # page_available = False
+                    # print(worker_id , ": No pages available")
 
             else:
                 print('Get request failed with status code:', response.status_code)
@@ -172,7 +168,7 @@ def update_page_info(page_id, html_content, page_type_code):
     """
     response = requests.post(
         'http://127.0.0.1:8000/db/update_page_info',
-        auth=HTTPBasicAuth(username, password),
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
         json={
             "page_id": page_id,
             "html_content": html_content,
@@ -193,7 +189,7 @@ def insert_page_images(page_id, images_urls):
     """
     response = requests.post(
         'http://127.0.0.1:8000/db/insert_page_images',
-        auth=HTTPBasicAuth(username, password),
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
         json={
             "page_id": page_id,
             "images_urls": images_urls,
@@ -212,7 +208,7 @@ def update_parse_status(url, status):
     """
     response = requests.post(
      'http://127.0.0.1:8000/db/update_parse_status',
-     auth=HTTPBasicAuth(username, password),
+     auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
      json={
          "url": url,
          "parse_status": status,
@@ -279,7 +275,7 @@ def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, cra
     """
     response = requests.post(
     'http://127.0.0.1:8000/db/insert_page_unparsed',
-    auth=HTTPBasicAuth(username, password),
+    auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
     json={
         "url": url,
         "robots_content": robots_content,
@@ -298,7 +294,7 @@ def get_robots_content(url):
     """
     response = requests.post(
         'http://127.0.0.1:8000/db/get_robots_content',
-        auth=HTTPBasicAuth(username, password),
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
         json={
         "url": url
         })
@@ -390,7 +386,8 @@ def match_pattern(pattern, url):
             return False
     return True
 
-max_workers = 3
+
+max_workers = 10
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
     for i in range(max_workers):
         f = executor.submit(multithread_crawler, i)
