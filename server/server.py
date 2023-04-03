@@ -2,7 +2,8 @@ import datetime
 import logging
 import time
 
-from sqlalchemy import or_, and_, extract
+import requests
+from sqlalchemy import or_, and_, extract, text
 
 from crawldb_model import *
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -30,15 +31,12 @@ session = scoped_session(
         bind=engine
     ))
 
-USERNAME = "fri"
-PASSWORD = "fri-pass"
-
 lock = threading.Lock()
 
 
 @basic_auth.verify_password
 def verify_password(username, password):
-    if password == PASSWORD and username == USERNAME:
+    if password == constants.PASSWORD and username == constants.USERNAME:
         return username
     else:
         return None
@@ -78,8 +76,8 @@ def get_next_page_url():
             return jsonify({"url": None}), 200
 
         session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
-        #session.query(Page).filter(Page.id == to_parse_url.Page.id)\
-            #.update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
+        session.query(Page).filter(Page.id == to_parse_url.Page.id)\
+            .update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
         session.commit()
 
     return jsonify({"url": to_parse_url.Page.url, "ip": to_parse_url.Ip.ip, "id": to_parse_url.Page.id}), 200
@@ -99,6 +97,7 @@ def update_parse_status():
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
 def insert_page_unparsed():
+    print("DDDDDDDDDDDDDDDDD")
     request_json = request.json
 
     url = request_json["url"]
@@ -126,7 +125,7 @@ def insert_page_unparsed():
         session=session,
         site_id=site.id,
         page_type_code=constants.PAGE_TYPE_HTML,
-        url=url + str(time.time()),  # for testing purposes so that every url is different
+        url=url,
         html_content=None,
         http_status_code=0,
         accessed_time=datetime.datetime.now())
@@ -215,6 +214,24 @@ def get_robots_content():
     return jsonify({"success": True, "message": "Site found", "robots_content": site.robots_content}), 200
 
 
+@app.route('/db/clear_database', methods=['POST'])
+@basic_auth.login_required
+def clear_database():
+    session.execute(text(
+        '''truncate table 
+            crawldb.page_data, 
+            crawldb.ip, 
+            crawldb.page, 
+            crawldb.site, 
+            crawldb.link, 
+            crawldb.site 
+            CASCADE''').execution_options(autocommit=True))
+    dummmy_page = Page(id=-1)
+    session.add(dummmy_page)
+    session.commit()
+    return jsonify({"success": True, "message": "Frontier filled!"}), 200
+
+
 def download_image(image_url):
     # TODO download image and get content type
     return "", str.encode("base64 encoded image data")
@@ -294,7 +311,7 @@ def create_page(session, site_id, page_type_code, url, html_content, http_status
 def create_link(session, from_page_id, to_page_id):
     try:
         link = Link(
-            from_page=to_page_id,  # TODO replace with request_json["from_page_id"]
+            from_page=from_page_id,
             to_page=to_page_id)
         session.add(link)
         session.commit()
