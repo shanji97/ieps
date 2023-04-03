@@ -7,8 +7,8 @@ conn_str = "postgresql+psycopg2://orglce:5loFzWry6ZwC@ep-falling-block-598917.eu
 Base = sqlalchemy.orm.declarative_base()
 engine = create_engine(conn_str,
                        connect_args={'options': '-csearch_path={}'.format('crawldb')},
-                       pool_size=30,
-                       max_overflow=0)
+                       pool_size=300,
+                       max_overflow=100)
 Base.metadata.reflect(engine)
 
 

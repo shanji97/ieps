@@ -1,8 +1,9 @@
 import datetime
 import logging
-import time
+import validators
+from base64 import b64decode
+import imghdr
 
-import requests
 from sqlalchemy import or_, and_, extract, text
 
 from crawldb_model import *
@@ -26,8 +27,6 @@ basic_auth = HTTPBasicAuth()
 
 session = scoped_session(
     sessionmaker(
-        autoflush=True,
-        autocommit=False,
         bind=engine
     ))
 
@@ -97,47 +96,53 @@ def update_parse_status():
 @app.route('/db/insert_page_unparsed', methods=['POST'])
 @basic_auth.login_required
 def insert_page_unparsed():
-    request_json = request.json
+    with lock:
+        request_json = request.json
 
-    url = request_json["url"]
-    robots_content = request_json["robots_content"]
-    sitemap_content = request_json["sitemap_content"]
-    from_page_id = request_json["from_page_id"]
-    crawl_delay = request_json["crawl_delay"]
+        url = request_json["url"]
+        robots_content = request_json["robots_content"]
+        sitemap_content = request_json["sitemap_content"]
+        from_page_id = request_json["from_page_id"]
+        crawl_delay = request_json["crawl_delay"]
 
-    site_url_extract = tldextract.extract(url)
-    domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
-    try:
-        ip = socket.gethostbyname(domain)
-    except socket.gaierror:
-        ip = None
+        site_url_extract = tldextract.extract(url)
+        domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
+        try:
+            ip = socket.gethostbyname(domain)
+        except socket.gaierror:
+            ip = None
 
-    # Add site if it doesn't exist
-    site = get_or_create_site(session, domain, robots_content, sitemap_content)
-    if not site:
-        return jsonify({"success": False, "message": "Site add failed!"}), 500
+        print("insert_page_unparsed")
 
-    _ = get_or_create_ip(session, ip, domain, crawl_delay)
+        # Add site if it doesn't exist
+        site = get_or_create_site(session, domain, robots_content, sitemap_content)
+        if not site:
+            return jsonify({"success": False, "message": "Site add failed!"}), 500
 
-    # Add page
-    page = create_page(
-        session=session,
-        site_id=site.id,
-        page_type_code=constants.PAGE_TYPE_HTML,
-        url=url,
-        html_content=None,
-        http_status_code=0,
-        accessed_time=datetime.datetime.now())
-    if not page:
-        return jsonify({"success": False, "message": "Page add failed!"}), 500
+        _ = get_or_create_ip(session, ip, domain, crawl_delay)
+        print("insert_page_unparsed1")
 
-    # Add link
-    link = create_link(session, from_page_id, page.id)
-    if not link:
-        return jsonify({"success": False, "message": "Link add failed!"}), 500
+        # Add page
+        page = create_or_create_page(
+            session=session,
+            site_id=site.id,
+            page_type_code=constants.PAGE_TYPE_HTML,
+            url=url,
+            html_content=None,
+            http_status_code=0,
+            accessed_time=datetime.datetime.now())
+        if not page:
+            return jsonify({"success": False, "message": "Page add failed!"}), 500
 
-    site.last_time_accessed = datetime.datetime.now()
-    session.commit()
+        print("insert_page_unparsed2")
+
+        # Add link
+        link = get_or_create_link(session, from_page_id, page.id)
+        if not link:
+            return jsonify({"success": False, "message": "Link add failed!"}), 500
+
+        site.last_time_accessed = datetime.datetime.now()
+        session.commit()
 
     return jsonify({"success": True, "message": "Page added!", "added_page_id": page.id}), 200
 
@@ -176,6 +181,24 @@ def insert_page_data():
     return jsonify({"success": True, "message": "Page data added!"}), 200
 
 
+@app.route('/db/is_duplicate', methods=['POST'])
+@basic_auth.login_required
+def is_duplicate():
+    request_json = request.json
+
+    url = request_json["url"]
+    html_content = request_json["html_content"]
+    all_pages = session.query(Page).all()
+    all_pages_urls = [page.url for page in all_pages]
+    print(all_pages_urls)
+    print(url)
+    if url in all_pages_urls:
+        print("Duplicate found: " + url)
+        return jsonify({"success": True, "duplicate_found": True}), 200
+
+    return jsonify({"success": True, "duplicate_found": False}), 200
+
+
 @app.route('/db/insert_page_images', methods=['POST'])
 @basic_auth.login_required
 def insert_page_images():
@@ -186,13 +209,29 @@ def insert_page_images():
 
     images_to_add = []
     for image_url in images_urls:
-        content_type, data = download_image(image_url)
-        images_to_add.append(Image(
-            page_id=page_id,
-            filename=image_url,
-            content_type=content_type,
-            data=data,
-            accessed_time=datetime.datetime.now()))
+        real_url = ""
+        base64_string = ""
+        content_type = ""
+        insert_image = True
+        if validators.url(image_url):
+            if len(image_url) > 255:
+                print("Image url too long: " + image_url)
+                insert_image = False
+            else:
+                real_url = image_url
+                # content_type, base64_string = download_image(image_url)
+        else:
+            base64_string = image_url
+            decoded_string = b64decode(base64_string)
+            content_type = imghdr.what(None, h=decoded_string)
+
+        if insert_image:
+            images_to_add.append(Image(
+                page_id=page_id,
+                filename=real_url,
+                content_type=content_type,
+                data=str.encode(base64_string),
+                accessed_time=datetime.datetime.now()))
 
     session.bulk_save_objects(images_to_add)
     session.commit()
@@ -216,6 +255,7 @@ def get_robots_content():
 @app.route('/db/clear_database', methods=['POST'])
 @basic_auth.login_required
 def clear_database():
+    session.flush()
     session.execute(text(
         '''truncate table 
             crawldb.page_data, 
@@ -233,7 +273,7 @@ def clear_database():
 
 def download_image(image_url):
     # TODO download image and get content type
-    return "", str.encode("base64 encoded image data")
+    return "", ""
 
 
 def create_page_data(session, page_id, data_type_code, data):
@@ -287,40 +327,48 @@ def get_or_create_ip(session, ip, domain, crawl_delay):
     return ip_object
 
 
-def create_page(session, site_id, page_type_code, url, html_content, http_status_code, accessed_time):
-    try:
-        page = Page(
-            site_id=site_id,
-            page_type_code=page_type_code,
-            url=url,
-            html_content=html_content,
-            http_status_code=http_status_code,
-            accessed_time=accessed_time)
-        session.add(page)
-        session.commit()
-        logging.info("Page added: {}".format(url))
+def create_or_create_page(session, site_id, page_type_code, url, html_content, http_status_code, accessed_time):
+    page = session.query(Page).filter(Page.url == url).first()
+    if not page:
+        try:
+            page = Page(
+                site_id=site_id,
+                page_type_code=page_type_code,
+                url=url,
+                html_content=html_content,
+                http_status_code=http_status_code,
+                accessed_time=accessed_time)
+            session.add(page)
+            session.commit()
+            logging.info("Page added: {}".format(url))
+            return page
+        except Exception as e:
+            session.rollback()
+            session.close()
+            logging.error("Page add failed: {}".format(e))
+            return None
+    else:
         return page
-    except Exception as e:
-        session.rollback()
-        session.close()
-        logging.error("Page add failed: {}".format(e))
-        return None
 
 
-def create_link(session, from_page_id, to_page_id):
-    try:
-        link = Link(
-            from_page=from_page_id,
-            to_page=to_page_id)
-        session.add(link)
-        session.commit()
-        logging.info("Link added: {} -> {}".format(from_page_id, to_page_id))
+def get_or_create_link(session, from_page_id, to_page_id):
+    link = session.query(Link).filter(Link.from_page == from_page_id, Link.to_page == to_page_id).first()
+    if not link:
+        try:
+            link = Link(
+                from_page=from_page_id,
+                to_page=to_page_id)
+            session.add(link)
+            session.commit()
+            logging.info("Link added: {} -> {}".format(from_page_id, to_page_id))
+            return link
+        except Exception as e:
+            session.rollback()
+            session.close()
+            logging.error("Link add failed: {}".format(e))
+            return None
+    else:
         return link
-    except Exception as e:
-        session.rollback()
-        session.close()
-        logging.error("Link add failed: {}".format(e))
-        return None
 
 
 if __name__ == "__main__":

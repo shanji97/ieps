@@ -31,28 +31,34 @@ def multithread_crawler(worker_id):
                     print_from_thread(worker_id, "PARSING", url)
 
                     # TODO: parse page and check for duplicate
-                    new_urls, new_images_urls = parse_page(page_id, url)
+                    new_urls, new_images_urls, html_content = parse_page(page_id, url)
                     # Store canonicalized URLs only!
                     print_from_thread(worker_id, "INFO", "New URLs: " + str(new_urls))
 
                     # insert images from the page to db
-                    insert_page_images(page_id, new_images_urls)
+                    if new_images_urls:
+                        insert_page_images(page_id, new_images_urls)
 
                     # insert new urls to to the frontier
-                    for new_url in new_urls:
-                        insert_page_if_allowed(new_url, page_id)
+                    if new_urls:
+                        for new_url in new_urls:
+                            try:
+                                insert_page_if_allowed(new_url, page_id)
+                            except Exception as err:
+                                print("ERROR on [Thread " + str(worker_id) + "]: ", err)
 
+                    # update page status to parsed
                     update_parse_status(url, constants.PARSE_STATUS_PARSED)
                     print_from_thread(worker_id, "PARSED", url)
                 # else:
-                # page_available = False
-                # print(worker_id , ": No pages available")
+                    # page_available = False
+                    # print(worker_id , ": No pages available")
 
             else:
                 print('Get request failed with status code:', response.status_code)
 
         except Exception as err:
-            print(worker_id, err)
+            print("ERROR on [Thread " + str(worker_id) + "]: ", err)
             time.sleep(1)
 
 
@@ -62,12 +68,28 @@ def print_from_thread(worker_id, status_string, message):
           "[Thread " + str(worker_id) + f"]{constants.END_COLOR} - " + status_string + ": " + message)
 
 
+def is_duplicate_url(new_url, html_content):
+    response = requests.post(
+        'http://127.0.0.1:8000/db/is_duplicate',
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
+        json={
+            "url": new_url,
+            "html_content": html_content,
+        })
+
+    if response.status_code != 200:
+        raise Exception('Finding duplicate failed with status code: ' + str(response.status_code))
+    return response.json()['duplicate_found']
+
+
 def render_page_and_extract(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
     driver.implicitly_wait(5)
+
+    html_content = ""
 
     # Get all 'a' tags:
     links = driver.find_elements(By.TAG_NAME, 'a')
@@ -96,7 +118,7 @@ def render_page_and_extract(url):
                 # This is an image with a URL
                 valid_images.append(src)
 
-    return (valid_links, valid_images)
+    return valid_links, valid_images, html_content
 
 
 def parse_page(page_id, url):
@@ -106,20 +128,20 @@ def parse_page(page_id, url):
     html_content = ""
 
     if is_html_code:
-        duplicate_id = is_duplicate(html_content)
+        duplicate_id = is_duplicate(url, html_content)
         if duplicate_id == -1:
             update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
             return render_page_and_extract(url)
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
             # duplicate_id (create functions on server and send post request)
-            return None, None
+            return None, None, None
     else:
         # Change page_type to Binary and add entry in table page_data with page_id
         # equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types)
         update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY)
         insert_page_data(page_id, extension)
-        return None, None
+        return None, None, None
 
 
 def is_html(url):
@@ -140,12 +162,12 @@ def is_html(url):
             return (True, None)
 
 
-def is_duplicate(html_content):
+def is_duplicate(url, html_content):
     # TODO
     # select pages from db with html_content equal to html_content of new page: if 0 results return -1 else return id of match
     # (send request to server + add function on server that sends query)
     id = -1
-    return -1
+    return id
 
 
 def insert_page_data(page_id, data_type_code, data=""):
