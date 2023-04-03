@@ -11,6 +11,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 import base64
 
+
 def multithread_crawler(worker_id):
     page_available = True
     while page_available:
@@ -19,7 +20,9 @@ def multithread_crawler(worker_id):
             response = requests.get(
                 'http://127.0.0.1:8000/db/get_next_page_url',
                 auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD))
-            print_from_thread(worker_id, "INFO", "Got next page: " + str(response.json()))
+            if response.status_code == 200:
+                if response.json()["url"]:
+                    print_from_thread(worker_id, "INFO", "Got next page: " + str(response.json()))
 
             if response.status_code == 200:
                 if response.json()["url"] is not None:
@@ -33,17 +36,17 @@ def multithread_crawler(worker_id):
                     print_from_thread(worker_id, "INFO", "New URLs: " + str(new_urls))
 
                     # insert images from the page to db
-                    # insert_page_images(page_id, new_images_urls)
+                    insert_page_images(page_id, new_images_urls)
 
                     # insert new urls to to the frontier
                     for new_url in new_urls:
                         insert_page_if_allowed(new_url, page_id)
 
-                    # update_parse_status(url, constants.PARSE_STATUS_PARSED)
+                    update_parse_status(url, constants.PARSE_STATUS_PARSED)
                     print_from_thread(worker_id, "PARSED", url)
                 # else:
-                    # page_available = False
-                    # print(worker_id , ": No pages available")
+                # page_available = False
+                # print(worker_id , ": No pages available")
 
             else:
                 print('Get request failed with status code:', response.status_code)
@@ -62,25 +65,25 @@ def print_from_thread(worker_id, status_string, message):
 def render_page_and_extract(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
-    driver = webdriver.Chrome(options = chrome_options)
+    driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
     driver.implicitly_wait(5)
-    
-    #Get all 'a' tags:
-    links = driver.find_elements(By.TAG_NAME,'a')
+
+    # Get all 'a' tags:
+    links = driver.find_elements(By.TAG_NAME, 'a')
     valid_links = []
-    
+
     for link in links:
         url = link.get_attribute('href')
         # Get only gov si links 
         if url and 'gov.si' in url:
             if url and 'gov.si/#' not in url:
                 valid_links.append(url)
-       
-    images = driver.find_elements(By.TAG_NAME,'img')   
+
+    images = driver.find_elements(By.TAG_NAME, 'img')
     valid_images = []
-    for img_element in images :
-    # Get the value of the src attribute
+    for img_element in images:
+        # Get the value of the src attribute
         src = img_element.get_attribute('src')
         if src:
             if src.startswith('data:image/'):
@@ -88,74 +91,99 @@ def render_page_and_extract(url):
                 # Decode the base64 data and save it to a file
                 encoded_data = src.split(',', 1)[1]
                 valid_images.append(encoded_data)
-               
+
             else:
                 # This is an image with a URL
                 valid_images.append(src)
-                
+
     return (valid_links, valid_images)
 
-def swicth_extensions(extension, page_id):
-    print(f'Extension {extension} on page {page_id}.')
-    if extension == 'pdf':
-        #TODO: Chagne method. 
-        update_page_info(page_id, None, constants.DATA_TYPE_PDF)
-    elif extension == 'doc':
-        update_page_info(page_id, None, constants.DATA_TYPE_DOC)
-    elif extension == 'docx':
-        update_page_info(page_id, None, constants.DATA_TYPE_DOCX)
-    elif extension == 'ppt':
-        update_page_info(page_id, None, constants.DATA_TYPE_PPT)
-    elif extension == 'pptx':
-        update_page_info(page_id, None, constants.DATA_TYPE_PPTX)
-    else:
-        update_page_info(page_id, None, constants.PAGE_TYPE_BINARY)
 
 def parse_page(page_id, url):
-    # TODO:
-    # fetch and render page (selenium)
-    #Check content type: if not html, change data_type and add entry in table page_data with page_id equal to from page id, else go on and parse html page
+    # Check content type: if not html, change data_type and add entry in
+    # table page_data with page_id equal to from page id, else go on and parse html page
     is_html_code, extension = is_html(url)
-    
-    if is_html_code == True:
+    html_content = ""
+
+    if is_html_code:
         duplicate_id = is_duplicate(html_content)
-        if is_duplicate(html_content) == -1:
+        if duplicate_id == -1:
             update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
             return render_page_and_extract(url)
-            ...
         else:
+            # Change page_type to DUPLICATE, update (Link) attribute from_page to
+            # duplicate_id (create functions on server and send post request)
             return None, None
-            # Change page_type to DUPLICATE, update (Link) attribute from_page to duplicate_id (create functions on server and send post request)
-            ...
     else:
-        swicth_extensions(page_id,extension)
-        return None,None
-        # Change page_type to Binary and add entry in table page_data with page_id equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types) 
-        #(send post request /db/insert_page_data)
-        ...
+        # Change page_type to Binary and add entry in table page_data with page_id
+        # equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types)
+        update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY)
+        insert_page_data(page_id, extension)
+        return None, None
+
 
 def is_html(url):
     parsed_url = urlparse(url)
     if parsed_url.path.endswith('.html'):
-        return (True,None)
+        return (True, None)
     else:
         extensions = [
-         'pdf','odt','odp', 'fodt','ods','fods', 'odg', 'fogd',   'png', 'jpg','jpeg','gif', 'pdf', 'doc', 'docx','docm', 'rtf', 'csv', 'tsv', 'xlsx',
-         'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
+            'pdf', 'odt', 'odp', 'fodt', 'ods', 'fods', 'odg', 'fogd', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc',
+            'docx', 'docm', 'rtf', 'csv', 'tsv', 'xlsx',
+            'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
         ]
-        
+
         for extension in extensions:
             if parsed_url.path.endswith(f'.{extension}'):
                 print(f'Parsed URL contains extension: {extension}')
                 return (False, extension)
             return (True, None)
 
+
 def is_duplicate(html_content):
     # TODO
     # select pages from db with html_content equal to html_content of new page: if 0 results return -1 else return id of match
     # (send request to server + add function on server that sends query)
     id = -1
-    return id
+    return -1
+
+
+def insert_page_data(page_id, data_type_code, data=""):
+    """
+    If the page is not HTML, insert its data to the database.
+
+    Input:
+    * page_id: id of the page
+    * data_type_code: extension of the file found on page
+    * data: the file content
+    """
+    insert = True
+    extension = ""
+    if data_type_code == 'pdf':
+        extension = constants.DATA_TYPE_PDF
+    elif data_type_code == 'doc':
+        extension = constants.DATA_TYPE_DOC
+    elif data_type_code == 'docx':
+        extension = constants.DATA_TYPE_DOCX
+    elif data_type_code == 'ppt':
+        extension = constants.DATA_TYPE_PPT
+    elif data_type_code == 'pptx':
+        extension = constants.DATA_TYPE_PPTX
+    else:
+        insert = False
+
+    if insert:
+        response = requests.post(
+            'http://127.0.0.1:8000/db/insert_page_data',
+            auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
+            json={
+                "page_id": page_id,
+                "data_type_code": extension,
+                "data": data,
+            })
+
+        if response.status_code != 200:
+            raise Exception('Updating html content failed with status code: ' + str(response.status_code))
 
 def update_page_info(page_id, html_content, page_type_code):
     """
@@ -198,6 +226,7 @@ def insert_page_images(page_id, images_urls):
     if response.status_code != 200:
         raise Exception('Inserting images failed with status code: ' + str(response.status_code))
 
+
 def update_parse_status(url, status):
     """
     Update parse status of page.
@@ -207,18 +236,19 @@ def update_parse_status(url, status):
     * status: parse status
     """
     response = requests.post(
-     'http://127.0.0.1:8000/db/update_parse_status',
-     auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
-     json={
-         "url": url,
-         "parse_status": status,
-     })
+        'http://127.0.0.1:8000/db/update_parse_status',
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
+        json={
+            "url": url,
+            "parse_status": status,
+        })
 
     if response.status_code == 200:
         print(response.json())
     else:
         raise Exception('Update parse status request failed with status code: ' + str(response.status_code))
-    
+
+
 def insert_page_if_allowed(url, from_page_id):
     """
     Insert page in frontier if allowed by robots.txt.
@@ -240,7 +270,7 @@ def insert_page_if_allowed(url, from_page_id):
             robots_response = requests.get("https://" + domain + "/robots.txt")
             if robots_response.status_code == 200:
                 robots_content = robots_response.text
-                #Extract data from robots.txt
+                # Extract data from robots.txt
                 disallowed, allowed, crawl_delay, sitemap = parse_robots_content(robots_content)
         except Exception as e:
             print(e)
@@ -262,31 +292,33 @@ def insert_page_if_allowed(url, from_page_id):
             insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay)
     elif robots_content is not None and len(robots_content) != 0:
         # Robots.txt exists
-        disallowed, allowed, crawl_delay, sitemap = parse_robots_content(robots_content) # change if stored in db
+        disallowed, allowed, crawl_delay, sitemap = parse_robots_content(robots_content)  # change if stored in db
         if is_page_allowed(url, disallowed, allowed):
             insert_page_unparsed(url, robots_content, sitemap, from_page_id, crawl_delay)
     else:
         # No robots.txt
         insert_page_unparsed(url, None, None, from_page_id, constants.DEFAULT_CRAWL_DELAY_SECONDS)
 
+
 def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay):
     """
     Send post request to server to insert unparsed page.
     """
     response = requests.post(
-    'http://127.0.0.1:8000/db/insert_page_unparsed',
-    auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
-    json={
-        "url": url,
-        "robots_content": robots_content,
-        "sitemap_content": sitemap_content,
-        "from_page_id": from_page_id,
-        "crawl_delay": crawl_delay
-    })
+        'http://127.0.0.1:8000/db/insert_page_unparsed',
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
+        json={
+            "url": url,
+            "robots_content": robots_content,
+            "sitemap_content": sitemap_content,
+            "from_page_id": from_page_id,
+            "crawl_delay": crawl_delay
+        })
     if response.status_code == 200:
         print(response.json())
     else:
         raise Exception('Insert page unparsed request failed with status code: ' + str(response.status_code))
+
 
 def get_robots_content(url):
     """
@@ -296,7 +328,7 @@ def get_robots_content(url):
         'http://127.0.0.1:8000/db/get_robots_content',
         auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
         json={
-        "url": url
+            "url": url
         })
     if response.status_code == 200:
         if response.json()["success"]:
@@ -305,6 +337,7 @@ def get_robots_content(url):
             return -1
     else:
         raise Exception('Get robots content request failed with status code: ' + str(response.status_code))
+
 
 def parse_robots_content(robots_content):
     """
@@ -332,10 +365,11 @@ def parse_robots_content(robots_content):
                 elif split_line[0] == "crawl-delay:" and split_line[1].isnumeric():
                     crawl_delay = int(split_line[1])
                 elif split_line[0] == "sitemap:":
-                    sitemap = split_line[1]       
+                    sitemap = split_line[1]
             elif split_line[0] == "user-agent:" and split_line[1] == "*":
                 user_agent_found = True
     return (disallowed_pages, allowed_pages, crawl_delay, sitemap)
+
 
 def is_page_allowed(url, disallowed, allowed):
     """
@@ -356,6 +390,7 @@ def is_page_allowed(url, disallowed, allowed):
                     return True
             return False
     return True
+
 
 def match_pattern(pattern, url):
     """
@@ -380,7 +415,7 @@ def match_pattern(pattern, url):
         parts = parts[:-1]
     else:
         parts = pattern.split("*")
-    
+
     for part in parts:
         if url.find(part) == -1:
             return False
