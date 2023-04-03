@@ -18,29 +18,32 @@ def multithread_crawler(worker_id):
     page_available = True
     while page_available:
         try:
+
             response = requests.get(
                 'http://127.0.0.1:8000/db/get_next_page_url',
                 auth=HTTPBasicAuth(username, password))
-            
+
             if response.status_code == 200:
                 if response.json()["url"] is not None:
-                    print(worker_id, response.json())
                     url = response.json()["url"]
                     page_id = response.json()["id"]
+                    print_from_thread(worker_id, "PARSING", url)
 
                     # TODO: parse page and check for duplicate
                     new_urls, new_images_urls = parse_page(page_id, url)
                     # Store canonicalized URLs only!
+                    print_from_thread(worker_id, "INFO", "New URLs: " + str(new_urls))
 
                     # insert images from the page to db
                     # insert_page_images(page_id, new_images_urls)
 
                     # insert new urls to to the frontier
-                    new_urls = []
-                    for new_url in new_urls:
-                        insert_page_if_allowed(new_url, page_id)
+                    # new_urls = []
+                    # for new_url in new_urls:
+                    #     insert_page_if_allowed(new_url, page_id)
 
                     # update_parse_status(url, constants.PARSE_STATUS_PARSED)
+                    print_from_thread(worker_id, "PARSED", url)
                 else:
                     page_available = False
                     print(worker_id , ": No pages available")
@@ -51,7 +54,14 @@ def multithread_crawler(worker_id):
         except Exception as err:
             print(worker_id, err)
             time.sleep(1)
-            
+
+
+def print_from_thread(worker_id, status_string, message):
+    num_of_colors = len(constants.TERMINAL_COLORS)
+    print(f"{constants.TERMINAL_COLORS[worker_id % num_of_colors]}"
+          "[Thread " + str(worker_id) + f"]{constants.END_COLOR} - " + status_string + ": " + message)
+
+
 def render_page_and_extract(url):
     chrome_options = Options()
     chrome_options.add_argument('--headless')
