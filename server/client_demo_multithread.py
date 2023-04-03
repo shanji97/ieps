@@ -5,6 +5,7 @@ import constants
 import time
 import tldextract
 
+from urllib.parse import urlparse
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -98,35 +99,60 @@ def render_page_and_extract(url):
                 
     return (valid_links, valid_images)
 
+def swicth_extensions(extension, page_id):
+    print(f'Extension {extension} on page {page_id}.')
+    if extension == 'pdf':
+        #TODO: Chagne method. 
+        update_page_info(page_id, None, constants.DATA_TYPE_PDF)
+    elif extension == 'doc':
+        update_page_info(page_id, None, constants.DATA_TYPE_DOC)
+    elif extension == 'docx':
+        update_page_info(page_id, None, constants.DATA_TYPE_DOCX)
+    elif extension == 'ppt':
+        update_page_info(page_id, None, constants.DATA_TYPE_PPT)
+    elif extension == 'pptx':
+        update_page_info(page_id, None, constants.DATA_TYPE_PPTX)
+    else:
+        update_page_info(page_id, None, constants.PAGE_TYPE_BINARY)
 
 def parse_page(page_id, url):
-    # TODO
+    # TODO:
     # fetch and render page (selenium)
     #Check content type: if not html, change data_type and add entry in table page_data with page_id equal to from page id, else go on and parse html page
-    if is_html(url):
-        html_content = None
+    is_html_code, extension = is_html(url)
+    
+    if is_html_code == True:
         duplicate_id = is_duplicate(html_content)
         if is_duplicate(html_content) == -1:
             update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
             return render_page_and_extract(url)
             ...
         else:
+            return None, None
             # Change page_type to DUPLICATE, update (Link) attribute from_page to duplicate_id (create functions on server and send post request)
             ...
     else:
-        update_page_info(page_id, None, constants.PAGE_TYPE_BINARY)
-        # Change page_type to Binary and add entry in table page_data with page_id equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx) 
+        swicth_extensions(page_id,extension)
+        return None,None
+        # Change page_type to Binary and add entry in table page_data with page_id equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types) 
         #(send post request /db/insert_page_data)
         ...
-       
-    # Return links and images
-    return None, None
 
 def is_html(url):
-    # TODO
-    # Check if content is html
-    return True
-
+    parsed_url = urlparse(url)
+    if parsed_url.path.endswith('.html'):
+        return (True,None)
+    else:
+        extensions = [
+         'pdf','odt','odp', 'fodt','ods','fods', 'odg', 'fogd',   'png', 'jpg','jpeg','gif', 'pdf', 'doc', 'docx','docm', 'rtf', 'csv', 'tsv', 'xlsx',
+         'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
+        ]
+        
+        for extension in extensions:
+            if parsed_url.path.endswith(f'.{extension}'):
+                print(f'Parsed URL contains extension: {extension}')
+                return (False, extension)
+            return (True, None)
 
 def is_duplicate(html_content):
     # TODO
