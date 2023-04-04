@@ -115,8 +115,9 @@ def render_page_and_extract(url):
         url = link.get_attribute('href')
         # Get only gov si links 
         if url and 'gov.si' in url:
-            if url and 'gov.si/#' not in url:
-                valid_links.append(url)
+            normalized_url = normalize_url(url)
+            if normalized_url not in valid_links:
+                valid_links.append(normalized_url)
 
     images = driver.find_elements(By.TAG_NAME, 'img')
     valid_images = []
@@ -160,6 +161,15 @@ def parse_page(page_id, url):
         insert_page_data(page_id, extension)
         return None, None, None
 
+def normalize_url(url):
+    """
+    Normalize url: remove query parameters, fragments and '/' at the end
+    """
+    u = urlparse(url)
+    new_url = u.scheme+ "." + u.netloc + u.path
+    if new_url[-1] == "/":
+        return new_url[:-1]
+    return new_url
 
 def is_html(url):
     parsed_url = urlparse(url)
@@ -357,7 +367,8 @@ def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, cra
             "crawl_delay": crawl_delay
         })
     if response.status_code == 200:
-        print_from_thread(worker_id, "INFO", "Inserted page: " + url)
+        if not response.json()["already_exists"]:
+            print_from_thread(worker_id, "INFO", "Inserted page: " + url)
     else:
         raise Exception('Insert page unparsed request failed with status code: ' + str(response.status_code))
 
