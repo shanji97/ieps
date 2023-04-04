@@ -89,7 +89,7 @@ def render_page_and_extract(url):
     driver.get(url)
     driver.implicitly_wait(5)
 
-    html_content = ""
+    html_content = driver.page_source
 
     # Get all 'a' tags:
     links = driver.find_elements(By.TAG_NAME, 'a')
@@ -128,10 +128,11 @@ def parse_page(page_id, url):
     html_content = ""
 
     if is_html_code:
+        valid_links, valid_images, html_content = render_page_and_extract(url)
         duplicate_id = is_duplicate(url, html_content)
         if duplicate_id == -1:
             update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
-            return render_page_and_extract(url)
+            return valid_links, valid_images, html_content
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
             # duplicate_id (create functions on server and send post request)
@@ -444,7 +445,7 @@ def match_pattern(pattern, url):
     return True
 
 
-max_workers = 10
+max_workers = 5
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
     for i in range(max_workers):
         f = executor.submit(multithread_crawler, i)
