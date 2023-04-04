@@ -43,7 +43,7 @@ def multithread_crawler(worker_id):
                     if new_urls:
                         for new_url in new_urls:
                             try:
-                                insert_page_if_allowed(new_url, page_id)
+                                insert_page_if_allowed(new_url, page_id, worker_id)
                             except Exception as err:
                                 print("ERROR on [Thread " + str(worker_id) + "]: ", err)
 
@@ -275,7 +275,7 @@ def update_parse_status(url, status):
         raise Exception('Update parse status request failed with status code: ' + str(response.status_code))
 
 
-def insert_page_if_allowed(url, from_page_id):
+def insert_page_if_allowed(url, from_page_id, worker_id):
     """
     Insert page in frontier if allowed by robots.txt.
 
@@ -315,18 +315,18 @@ def insert_page_if_allowed(url, from_page_id):
                 print(e)
                 sitemap_content = None
         if is_page_allowed(url, disallowed, allowed):
-            insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay)
+            insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay, worker_id)
     elif robots_content is not None and len(robots_content) != 0:
         # Robots.txt exists
         disallowed, allowed, crawl_delay, sitemap = parse_robots_content(robots_content)  # change if stored in db
         if is_page_allowed(url, disallowed, allowed):
-            insert_page_unparsed(url, robots_content, sitemap, from_page_id, crawl_delay)
+            insert_page_unparsed(url, robots_content, sitemap, from_page_id, crawl_delay, worker_id)
     else:
         # No robots.txt
-        insert_page_unparsed(url, None, None, from_page_id, constants.DEFAULT_CRAWL_DELAY_SECONDS)
+        insert_page_unparsed(url, None, None, from_page_id, constants.DEFAULT_CRAWL_DELAY_SECONDS, worker_id)
 
 
-def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay):
+def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, crawl_delay, worker_id):
     """
     Send post request to server to insert unparsed page.
     """
@@ -341,7 +341,7 @@ def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, cra
             "crawl_delay": crawl_delay
         })
     if response.status_code == 200:
-        print(response.json())
+        print_from_thread(worker_id, "INFO", "Inserted page: " + url)
     else:
         raise Exception('Insert page unparsed request failed with status code: ' + str(response.status_code))
 
@@ -448,7 +448,7 @@ def match_pattern(pattern, url):
     return True
 
 
-max_workers = 5
+max_workers = 8
 with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
     for i in range(max_workers):
         f = executor.submit(multithread_crawler, i)
