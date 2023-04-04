@@ -335,6 +335,7 @@ def insert_page_if_allowed(url, from_page_id, worker_id):
             disallowed = []
             allowed = []
             sitemap = None
+            crawl_delay = 5
         if sitemap:
             try:
                 # request sitemap
@@ -407,7 +408,7 @@ def parse_robots_content(robots_content):
     user_agent_found = False
     disallowed_pages = []
     allowed_pages = []
-    crawl_delay = None
+    crawl_delay = 5
     sitemap = None
     for line in robots_content.split("\n"):
         split_line = line.strip().lower().split(" ")
