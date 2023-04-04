@@ -117,15 +117,12 @@ def insert_page_unparsed():
         except socket.gaierror:
             ip = None
 
-        print("insert_page_unparsed")
-
         # Add site if it doesn't exist
         site = get_or_create_site(session, domain, robots_content, sitemap_content)
         if not site:
             return jsonify({"success": False, "message": "Site add failed!"}), 500
 
         _ = get_or_create_ip(session, ip, domain, crawl_delay)
-        print("insert_page_unparsed1")
 
         # Add page
         page = create_or_create_page(
@@ -138,8 +135,6 @@ def insert_page_unparsed():
             accessed_time=datetime.datetime.now())
         if not page:
             return jsonify({"success": False, "message": "Page add failed!"}), 500
-
-        print("insert_page_unparsed2")
 
         # Add link
         link = get_or_create_link(session, from_page_id, page.id)
@@ -204,6 +199,22 @@ def is_duplicate():
         return jsonify({"success": True, "duplicate_found": True}), 200
 
     return jsonify({"success": True, "duplicate_found": False}), 200
+
+
+@app.route('/db/is_duplicate_page', methods=['POST'])
+@basic_auth.login_required
+def is_duplicate_page():
+    request_json = request.json
+
+    html_content_hash = request_json["html_content_hash"]
+    all_pages = session.query(Page).filter(Page.html_content != None).all()
+    duplicate_id = -1
+    for page in all_pages:
+        if page.html_content == html_content_hash:
+            duplicate_id = page.id
+            break
+
+    return jsonify({"success": True, "duplicate_id": duplicate_id}), 200
 
 
 @app.route('/db/insert_page_images', methods=['POST'])

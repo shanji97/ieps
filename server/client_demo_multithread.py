@@ -52,8 +52,8 @@ def multithread_crawler(worker_id):
                     update_parse_status(url, constants.PARSE_STATUS_PARSED)
                     print_from_thread(worker_id, "PARSED", url)
                 # else:
-                    # page_available = False
-                    # print(worker_id , ": No pages available")
+                # page_available = False
+                # print(worker_id , ": No pages available")
 
             else:
                 print('Get request failed with status code:', response.status_code)
@@ -82,23 +82,24 @@ def is_duplicate_url(new_url, html_content):
         raise Exception('Finding duplicate failed with status code: ' + str(response.status_code))
     return response.json()['duplicate_found']
 
+
 def get_status_code(url):
-    
     response = requests.get(url)
     return response.status_code
-        
+
+
 def get_html_hash(html_content):
     html_content = str.encode(html_content)
     hash_object = hashlib.sha512(html_content)
     return hash_object.hexdigest()
 
+
 def render_page_and_extract(url):
-    
     http_status_code = get_status_code(url)
-    
+
     if http_status_code >= 400:
-        return None, None, None, http_status_code,None
-    
+        return None, None, None, http_status_code, None
+
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     driver = webdriver.Chrome(options=chrome_options)
@@ -114,7 +115,7 @@ def render_page_and_extract(url):
 
     for link in links:
         url = link.get_attribute('href')
-        # Get only gov si links 
+        # Get only gov si links
         if url and 'gov.si' in url:
             normalized_url = normalize_url(url)
             if normalized_url not in valid_links:
@@ -147,16 +148,17 @@ def parse_page(page_id, url):
 
     if is_html_code:
         valid_links, valid_images, html_content, http_status_code, html_content_hash = render_page_and_extract(url)
-        duplicate_id = is_duplicate(url, html_content)
+        duplicate_id = is_duplicate(html_content_hash)
         if duplicate_id == -1:
-            if http_status_code>=400:
+            if http_status_code >= 400:
                 update_page_info(page_id, html_content, constants.PAGE_TYPE_ERROR, http_status_code, html_content_hash)
             else:
                 update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code, html_content_hash)
             return valid_links, valid_images, html_content
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
-            # duplicate_id (create functions on server and send post request)
+            # TODO update link table
+            update_page_info(page_id, html_content, constants.PAGE_TYPE_DUPLICATE, http_status_code, html_content_hash)
             return None, None, None
     else:
         # Change page_type to Binary and add entry in table page_data with page_id
@@ -164,6 +166,7 @@ def parse_page(page_id, url):
         update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY, 200, None)
         insert_page_data(page_id, extension)
         return None, None, None
+
 
 def normalize_url(url):
     """
@@ -174,6 +177,7 @@ def normalize_url(url):
     if new_url[-1] == "/":
         return new_url[:-1]
     return new_url
+
 
 def is_html(url):
     parsed_url = urlparse(url)
@@ -193,12 +197,17 @@ def is_html(url):
             return (True, None)
 
 
-def is_duplicate(url, html_content):
-    # TODO
+def is_duplicate(html_content_hash):
     # select pages from db with html_content equal to html_content of new page: if 0 results return -1 else return id of match
-    # (send request to server + add function on server that sends query)
-    id = -1
-    return id
+    response = requests.post(
+        'http://127.0.0.1:8000/db/is_duplicate_page',
+        auth=HTTPBasicAuth(constants.USERNAME, constants.PASSWORD),
+        json={
+            "html_content_hash": html_content_hash
+        })
+    if response.status_code != 200:
+        raise Exception('Finding duplicate failed with status code: ' + str(response.status_code))
+    return response.json()['duplicate_id']
 
 
 def insert_page_data(page_id, data_type_code, data=""):
@@ -237,6 +246,7 @@ def insert_page_data(page_id, data_type_code, data=""):
 
         if response.status_code != 200:
             raise Exception('Updating html content failed with status code: ' + str(response.status_code))
+
 
 def update_page_info(page_id, html_content, page_type_code, http_status_code, html_hash):
     """
@@ -333,9 +343,9 @@ def insert_page_if_allowed(url, from_page_id, worker_id):
             robots_content = None
             sitemap_content = None
             disallowed = []
+            crawl_delay = 5
             allowed = []
             sitemap = None
-            crawl_delay = 5
         if sitemap:
             try:
                 # request sitemap
@@ -401,7 +411,7 @@ def parse_robots_content(robots_content):
     """
     Parse robots.txt (User-agent, Allow, Disallow, Crawl-delay and Sitemap), only for user-agent: *
 
-    Input: 
+    Input:
 
     * robots_content: content of robots.txt
     """
@@ -456,7 +466,7 @@ def match_pattern(pattern, url):
 
     Wildcard characters:
         \* designates 0 or more instances of any valid character.
-        
+
         $ designates the end of the URL.
 
     Input:
