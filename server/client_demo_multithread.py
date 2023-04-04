@@ -149,7 +149,10 @@ def parse_page(page_id, url):
         valid_links, valid_images, html_content, http_status_code, html_content_hash = render_page_and_extract(url)
         duplicate_id = is_duplicate(url, html_content)
         if duplicate_id == -1:
-            update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code, html_content_hash)
+            if http_status_code>=400:
+                update_page_info(page_id, html_content, constants.PAGE_TYPE_ERROR, http_status_code, html_content_hash)
+            elif:
+                update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code, html_content_hash)
             return valid_links, valid_images, html_content
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
