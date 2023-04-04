@@ -155,9 +155,11 @@ def update_page_info():
     page_id = request_json["page_id"]
     html_content = request_json["html_content"]
     page_type_code = request_json["page_type_code"]
+    http_status_code = request_json["http_status_code"]
     session.query(Page).filter(Page.id == page_id).update({
         "html_content": html_content,
-        "page_type_code": page_type_code
+        "page_type_code": page_type_code,
+        "http_status_code": http_status_code
     })
     session.commit()
 

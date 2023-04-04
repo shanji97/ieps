@@ -90,6 +90,7 @@ def render_page_and_extract(url):
     driver.implicitly_wait(5)
 
     html_content = driver.page_source
+    http_status_code = -1  # TODO get http status code
 
     # Get all 'a' tags:
     links = driver.find_elements(By.TAG_NAME, 'a')
@@ -118,7 +119,7 @@ def render_page_and_extract(url):
                 # This is an image with a URL
                 valid_images.append(src)
 
-    return valid_links, valid_images, html_content
+    return valid_links, valid_images, html_content, http_status_code
 
 
 def parse_page(page_id, url):
@@ -128,10 +129,10 @@ def parse_page(page_id, url):
     html_content = ""
 
     if is_html_code:
-        valid_links, valid_images, html_content = render_page_and_extract(url)
+        valid_links, valid_images, html_content, http_status_code = render_page_and_extract(url)
         duplicate_id = is_duplicate(url, html_content)
         if duplicate_id == -1:
-            update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML)
+            update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code)
             return valid_links, valid_images, html_content
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
@@ -140,7 +141,7 @@ def parse_page(page_id, url):
     else:
         # Change page_type to Binary and add entry in table page_data with page_id
         # equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types)
-        update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY)
+        update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY, 200)
         insert_page_data(page_id, extension)
         return None, None, None
 
@@ -208,7 +209,7 @@ def insert_page_data(page_id, data_type_code, data=""):
         if response.status_code != 200:
             raise Exception('Updating html content failed with status code: ' + str(response.status_code))
 
-def update_page_info(page_id, html_content, page_type_code):
+def update_page_info(page_id, html_content, page_type_code, http_status_code):
     """
     Update page html content.
 
@@ -216,6 +217,7 @@ def update_page_info(page_id, html_content, page_type_code):
     * page_id: id of the page
     * html_content: html content to add to page
     * page_type_code: type of page (html, binary, duplicate)
+    * http_status_code: http status code of the page
     """
     response = requests.post(
         'http://127.0.0.1:8000/db/update_page_info',
@@ -224,6 +226,7 @@ def update_page_info(page_id, html_content, page_type_code):
             "page_id": page_id,
             "html_content": html_content,
             "page_type_code": page_type_code,
+            "http_status_code": http_status_code
         })
 
     if response.status_code != 200:
