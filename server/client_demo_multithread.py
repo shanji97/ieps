@@ -151,7 +151,7 @@ def parse_page(page_id, url):
         if duplicate_id == -1:
             if http_status_code>=400:
                 update_page_info(page_id, html_content, constants.PAGE_TYPE_ERROR, http_status_code, html_content_hash)
-            elif:
+            else:
                 update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code, html_content_hash)
             return valid_links, valid_images, html_content
         else:
