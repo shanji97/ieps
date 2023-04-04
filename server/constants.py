@@ -20,5 +20,22 @@ OLDER_THAN_SECONDS_WHEN_PARSING = 30 * 60
 USERNAME = "fri"
 PASSWORD = "fri-pass"
 
-TERMINAL_COLORS = ['\033[95m', '\033[94m', '\033[96m', '\033[92m', '\033[93m', '\033[91m', '\033[1m', '\033[4m']
+TERMINAL_COLORS = [
+    "\033[0;31m",  # Red
+    "\033[0;32m",  # Green
+    "\033[0;33m",  # Yellow
+    "\033[0;34m",  # Blue
+    "\033[0;35m",  # Magenta
+    "\033[0;36m",  # Cyan
+    "\033[0;37m",  # White
+    "\033[1;31m",  # Bright red
+    "\033[1;32m",  # Bright green
+    "\033[1;33m",  # Bright yellow
+    "\033[1;34m",  # Bright blue
+    "\033[1;35m",  # Bright magenta
+    "\033[1;36m",  # Bright cyan
+    "\033[1;37m",  # Bright white
+    "\033[1;30m",  # Gray
+    "\033[0;30m",  # Dark gray
+]
 END_COLOR = '\033[0m'

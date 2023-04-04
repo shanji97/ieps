@@ -105,6 +105,11 @@ def insert_page_unparsed():
         from_page_id = request_json["from_page_id"]
         crawl_delay = request_json["crawl_delay"]
 
+        all_pages = session.query(Page).all()
+        all_pages_urls = [page.url for page in all_pages]
+        if url in all_pages_urls:
+            return jsonify({"success": True, "already_exists": True, "message": "Page already exists!"}), 200
+
         site_url_extract = tldextract.extract(url)
         domain = site_url_extract.subdomain + "." + site_url_extract.domain + "." + site_url_extract.suffix
         try:
@@ -144,7 +149,7 @@ def insert_page_unparsed():
         site.last_time_accessed = datetime.datetime.now()
         session.commit()
 
-    return jsonify({"success": True, "message": "Page added!", "added_page_id": page.id}), 200
+    return jsonify({"success": True, "already_exists": False, "message": "Page added!", "added_page_id": page.id}), 200
 
 
 @app.route('/db/update_page_info', methods=['POST'])

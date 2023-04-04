@@ -341,7 +341,8 @@ def insert_page_unparsed(url, robots_content, sitemap_content, from_page_id, cra
             "crawl_delay": crawl_delay
         })
     if response.status_code == 200:
-        print_from_thread(worker_id, "INFO", "Inserted page: " + url)
+        if not response.json()["already_exists"]:
+            print_from_thread(worker_id, "INFO", "Inserted page: " + url)
     else:
         raise Exception('Insert page unparsed request failed with status code: ' + str(response.status_code))
 
