@@ -3,10 +3,11 @@ from requests.auth import HTTPBasicAuth
 import constants
 
 seed_urls = [
-    "https://www.gov.si/",
+    "https://www.gov.si",
     "https://spot.gov.si/spot/drzavljani/zacetna.evem",
-    "https://e-uprava.gov.si/",
-    "https://www.e-prostor.gov.si/"]
+    "https://e-uprava.gov.si",
+    "https://www.e-prostor.gov.si"
+]
 
 # clear database and insert dummy page
 response = requests.post('http://127.0.0.1:8000/db/clear_database',

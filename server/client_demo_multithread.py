@@ -88,8 +88,9 @@ def get_status_code(url):
     return response.status_code
         
 def get_html_hash(html_content):
+    html_content = str.encode(html_content)
     hash_object = hashlib.sha512(html_content)
-    return hash_object.hexdigest();
+    return hash_object.hexdigest()
 
 def render_page_and_extract(url):
     
@@ -145,10 +146,10 @@ def parse_page(page_id, url):
     html_content = ""
 
     if is_html_code:
-        valid_links, valid_images, html_content, html_content_hash, http_status_code, html_hash= render_page_and_extract(url)
+        valid_links, valid_images, html_content, http_status_code, html_content_hash = render_page_and_extract(url)
         duplicate_id = is_duplicate(url, html_content)
         if duplicate_id == -1:
-            update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code,html_hash)
+            update_page_info(page_id, html_content, constants.PAGE_TYPE_HTML, http_status_code, html_content_hash)
             return valid_links, valid_images, html_content
         else:
             # Change page_type to DUPLICATE, update (Link) attribute from_page to
@@ -166,7 +167,7 @@ def normalize_url(url):
     Normalize url: remove query parameters, fragments and '/' at the end
     """
     u = urlparse(url)
-    new_url = u.scheme+ "." + u.netloc + u.path
+    new_url = u.scheme + "://" + u.netloc + u.path
     if new_url[-1] == "/":
         return new_url[:-1]
     return new_url
