@@ -39,13 +39,13 @@ def multithread_crawler(worker_id):
                     if new_images_urls:
                         insert_page_images(page_id, new_images_urls)
 
-                    # insert new urls to to the frontier
-                    if new_urls:
-                        for new_url in new_urls:
-                            try:
-                                insert_page_if_allowed(new_url, page_id, worker_id)
-                            except Exception as err:
-                                print("ERROR on [Thread " + str(worker_id) + "]: ", err)
+                    # # insert new urls to to the frontier
+                    # if new_urls:
+                    #     for new_url in new_urls:
+                    #         try:
+                    #             insert_page_if_allowed(new_url, page_id, worker_id)
+                    #         except Exception as err:
+                    #             print("ERROR on [Thread " + str(worker_id) + "]: ", err)
 
                     # update page status to parsed
                     update_parse_status(url, constants.PARSE_STATUS_PARSED)
