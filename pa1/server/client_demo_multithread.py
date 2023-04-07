@@ -216,10 +216,10 @@ def is_html(url):
         ]
 
         for extension in extensions:
-            if parsed_url.path.endswith(f'.{extension}'):
-                print(f'Parsed URL contains extension: {extension}')
-                return (False, extension)
-            return (True, None)
+            if parsed_url.path.endswith(f'.{extension}') or parsed_url.path.endswith(f'.{extension.upper()}'):
+                print(f'Parsed URL contains extension: {extension.upper()}')
+                return False, extension.upper()
+        return True, None
 
 
 def is_duplicate(html_content_hash):
