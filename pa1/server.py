@@ -161,7 +161,7 @@ def update_page_info():
     http_status_code = request_json["http_status_code"]
     session.query(Page).filter(Page.id == page_id).update({
         "html_content": html_content,
-        "html_hash": html_hash,
+        "html_content_hash": html_hash,
         "page_type_code": page_type_code,
         "http_status_code": http_status_code
     })
@@ -211,7 +211,9 @@ def is_duplicate_page():
     request_json = request.json
 
     html_content_hash = request_json["html_content_hash"]
-    all_pages = session.query(Page).filter(Page.html_content_hash != None).all()
+    all_pages = session.query(Page).filter(
+        Page.html_content_hash != None,
+        Page.page_type_code != constants.PAGE_TYPE_BINARY).all()
     duplicate_id = -1
     for page in all_pages:
         if page.html_content_hash == html_content_hash:

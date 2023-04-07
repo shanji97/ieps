@@ -115,7 +115,7 @@ def render_page_and_extract(url_to_render):
     for link in links:
         url = link.get_attribute('href')
         # Get only gov si links
-        if regex.match(url):
+        if regex.match(str(url)):
             normalized_url = normalize_url(url)
             if normalized_url not in valid_links:
                 valid_links.append(normalized_url)
@@ -181,7 +181,7 @@ def parse_page(page_id, url):
     else:
         # equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types)
         # Change page_type to Binary and add entry in table page_data with page_id
-        update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY, 200, None)
+        update_page_info(page_id, None, constants.PAGE_TYPE_BINARY, 200, None)
         if extension in ["pdf", "doc", "docx", "ppt", "pptx"]:
             insert_page_data(page_id, extension)
         return None, None, None
