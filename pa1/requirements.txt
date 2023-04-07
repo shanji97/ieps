@@ -1,9 +1,0 @@
-requests
-sqlalchemy
-flask
-flask_httpauth
-tldextract
-validators
-selenium
-beautifulsoup4
-psycopg2
