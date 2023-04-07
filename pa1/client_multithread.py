@@ -179,10 +179,11 @@ def parse_page(page_id, url):
             update_page_info(page_id, html_content, constants.PAGE_TYPE_DUPLICATE, http_status_code, html_content_hash)
             return None, None, None
     else:
-        # Change page_type to Binary and add entry in table page_data with page_id
         # equal to from page id and appropriate data_type  (.pdf, .doc, .docx, .ppt and .pptx and other types)
+        # Change page_type to Binary and add entry in table page_data with page_id
         update_page_info(page_id, html_content, constants.PAGE_TYPE_BINARY, 200, None)
-        insert_page_data(page_id, extension)
+        if extension in ["pdf", "doc", "docx", "ppt", "pptx"]:
+            insert_page_data(page_id, extension)
         return None, None, None
 
 
@@ -204,14 +205,13 @@ def is_html(url):
     else:
         extensions = [
             'pdf', 'odt', 'odp', 'fodt', 'ods', 'fods', 'odg', 'fogd', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc',
-            'docx', 'docm', 'rtf', 'csv', 'tsv', 'xlsx',
-            'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
+            'docx', 'docm', 'rtf', 'csv', 'tsv', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
         ]
 
         for extension in extensions:
             if str(parsed_url.path).endswith(f'.{extension}') or str(parsed_url.path).endswith(f'.{extension.upper()}'):
                 print(f'Parsed URL contains extension: {extension.upper()}')
-                return False, extension.upper()
+                return False, extension
         return True, None
 
 
