@@ -203,12 +203,7 @@ def is_html(url):
     if parsed_url.path.endswith('.html'):
         return (True, None)
     else:
-        extensions = [
-            'pdf', 'odt', 'odp', 'fodt', 'ods', 'fods', 'odg', 'fogd', 'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc',
-            'docx', 'docm', 'rtf', 'csv', 'tsv', 'xlsx', 'xlsm', 'xlsb', 'xltx', 'ppt', 'pptx', 'ppsx', 'pst', 'zip', '7z', 'pdf/a'
-        ]
-
-        for extension in extensions:
+        for extension in constants.FILE_EXTENSIONS:
             if str(parsed_url.path).endswith(f'.{extension}') or str(parsed_url.path).endswith(f'.{extension.upper()}'):
                 print(f'Parsed URL contains extension: {extension.upper()}')
                 return False, extension

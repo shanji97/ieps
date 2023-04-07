@@ -21,6 +21,10 @@ OLDER_THAN_SECONDS_WHEN_PARSING = 30 * 60
 USERNAME = "fri"
 PASSWORD = "fri-pass"
 
+FILE_EXTENSIONS = [
+    'aspx', 'evem', 'b2bprofile', 'delay', 'xsd', 'jpeg', 'mpg', 'png', 'xls', 'xlsm', 'ai', 'pem', 'php', 'dat', 'docm', 'startup', 'prj', 'ods', 'crt', 'rss', 'docx', '1c', 'pdf', 'mp3', 'p12', 'esju', 'p7c', 'mp4', 'csv', 'pptx', 'atom', 'delaye', 'dmg', 'novice', 'isk', 'tiff', 'kmz', 'pptm', 'xml', 'txt', 'jpg', 'zip', 'xlsx', 'tif', 'jsp', 'p7b', 'ppt', 'faces', 'exe', 'rtf', 'gif', 'crl', 'si', 'doc', 'odt'
+]
+
 TERMINAL_COLORS = [
     "\033[0;31m",  # Red
     "\033[0;32m",  # Green
