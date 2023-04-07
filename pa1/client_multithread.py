@@ -1,7 +1,7 @@
 import requests
 from requests.auth import HTTPBasicAuth
 import concurrent.futures
-import constants
+from utils import constants
 import time
 import tldextract
 
@@ -10,7 +10,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import base64
 import re
 import hashlib
 
@@ -33,9 +32,7 @@ def multithread_crawler(worker_id):
                     page_id = response.json()["id"]
                     print_from_thread(worker_id, "PARSING", url)
 
-                    # TODO: parse page and check for duplicate
                     new_urls, new_images_urls, html_content = parse_page(page_id, url)
-                    # Store canonicalized URLs only!
                     print_from_thread(worker_id, "INFO", "New URLs: " + str(new_urls))
 
                     # insert images from the page to db
@@ -53,9 +50,6 @@ def multithread_crawler(worker_id):
                     # update page status to parsed
                     update_parse_status(url, constants.PARSE_STATUS_PARSED)
                     print_from_thread(worker_id, "PARSED", url)
-                # else:
-                # page_available = False
-                # print(worker_id , ": No pages available")
 
             else:
                 print('Get request failed with status code:', response.status_code)
@@ -97,10 +91,9 @@ def get_html_hash(html_content):
 
 
 def render_page_and_extract(url_to_render):
-    pattern =r'^https?://(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+gov\.si(?:$|/)'
+    pattern = r'^https?://(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+gov\.si(?:$|/)'
     regex = re.compile(pattern)
-    
-    
+
     http_status_code = get_status_code(url_to_render)
 
     if http_status_code >= 400:
@@ -126,10 +119,10 @@ def render_page_and_extract(url_to_render):
             normalized_url = normalize_url(url)
             if normalized_url not in valid_links:
                 valid_links.append(normalized_url)
-    
-    #Get all onclick urls
+
+    # Get all onclick urls
     parsed_url = urlparse(url_to_render)
-    base_url = parsed_url.scheme + "://"+parsed_url.netloc
+    base_url = parsed_url.scheme + "://" + parsed_url.netloc
     soup = BeautifulSoup(html_content, "html.parser")
     script_tags = soup.find_all("script")
     for script_tag in script_tags:
@@ -145,8 +138,8 @@ def render_page_and_extract(url_to_render):
                 if regex.match(url_match):
                     if normalized_url not in valid_links:
                         valid_links.append(normalized_url)
-                   
-    #Handle the images.
+
+    # Handle the images.
     images = driver.find_elements(By.TAG_NAME, 'img')
     valid_images = []
     for img_element in images:
@@ -216,7 +209,7 @@ def is_html(url):
         ]
 
         for extension in extensions:
-            if parsed_url.path.endswith(f'.{extension}') or parsed_url.path.endswith(f'.{extension.upper()}'):
+            if str(parsed_url.path).endswith(f'.{extension}') or str(parsed_url.path).endswith(f'.{extension.upper()}'):
                 print(f'Parsed URL contains extension: {extension.upper()}')
                 return False, extension.upper()
         return True, None

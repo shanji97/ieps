@@ -127,4 +127,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-server/initalize_frontier.py
+pa1/server/local

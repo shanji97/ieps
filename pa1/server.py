@@ -6,13 +6,13 @@ import imghdr
 
 from sqlalchemy import or_, and_, extract, text
 
-from crawldb_model import *
+from database.crawldb_model import *
 from sqlalchemy.orm import scoped_session, sessionmaker
 from flask import Flask, request
 from flask import jsonify
 from flask_httpauth import HTTPBasicAuth
 import tldextract
-import constants
+from utils import constants
 import socket
 import threading
 
@@ -69,13 +69,14 @@ def get_next_page_url():
                     extract('epoch', current_time) - extract('epoch', Ip.last_time_accessed) >= Ip.crawl_delay,
                     or_(Page.parse_status == constants.PARSE_STATUS_NOT_PARSED,
                         and_(Page.parse_status == constants.PARSE_STATUS_PARSING,
-                            extract('epoch', current_time) - extract('epoch', Page.parse_status_change_time) >= constants.OLDER_THAN_SECONDS_WHEN_PARSING))).first()
+                             extract('epoch', current_time) - extract('epoch',
+                                                                      Page.parse_status_change_time) >= constants.OLDER_THAN_SECONDS_WHEN_PARSING))).first()
 
         if not to_parse_url:
             return jsonify({"url": None}), 200
 
         session.query(Ip).filter(Ip.ip == to_parse_url.Ip.ip).update({'last_time_accessed': current_time})
-        session.query(Page).filter(Page.id == to_parse_url.Page.id)\
+        session.query(Page).filter(Page.id == to_parse_url.Page.id) \
             .update({'parse_status': constants.PARSE_STATUS_PARSING, "parse_status_change_time": current_time})
         session.commit()
 
@@ -87,7 +88,8 @@ def get_next_page_url():
 def update_parse_status():
     request_json = request.json
     current_time = datetime.datetime.now()
-    session.query(Page).filter(Page.url == request_json["url"]).update({'parse_status': request_json["parse_status"],  "parse_status_change_time": current_time})
+    session.query(Page).filter(Page.url == request_json["url"]).update(
+        {'parse_status': request_json["parse_status"], "parse_status_change_time": current_time})
     session.commit()
 
     return jsonify({"success": True, "message": "Parse status updated"}), 200
