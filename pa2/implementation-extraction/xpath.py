@@ -20,8 +20,9 @@ def xpath_extraction(page, page_content):
         }.items():
             element = siteString.xpath(xpath)
             if element:
-                page_object[key] = element[0].text_content().strip().replace("\t", "").replace("\n", "")
-
+                page_object[key] = element[0].text_content(
+                ).strip().replace("\t", "").replace("\n", "")
+        print(p)
     elif page == 'overstock':
         jsons = []
         for i in range(1, len(3)):
@@ -40,13 +41,16 @@ def xpath_extraction(page, page_content):
                         data[key] = element[0].text_content().strip().replace(
                             "\t", "").replace("\n", "")
                     jsons.append(data)
+                    error = False
             except:
                 if error:
                     break
                 else:
                     error = True
                 None
-            page_content = json.dumps(jsons, indent=4, ensure_ascii=False)
+            
+            print(f"\nIteration:{i}")
+            print(json.dumps(jsons, indent=4, ensure_ascii=False))
     elif page == 'studentska_prehrana':
         jsons = []
         for i in range(1, len(100)):
@@ -64,15 +68,17 @@ def xpath_extraction(page, page_content):
                 }.items():
                     element = siteString.xpath(xpath)
                     if element:
-                        data[key] = element[0].text_content().strip().replace("\t", "").replace("\n", "").replace("&nbsp;","")
+                        data[key] = element[0].text_content().strip().replace(
+                            "\t", "").replace("\n", "").replace("&nbsp;", "")
                     jsons.append(data)
+                    error = False
             except:
                 if error:
                     break
                 else:
                     error = True
                 None
-            page_content = json.dumps(jsons, indent=4, ensure_ascii=False)
+            print(json.dumps(jsons, indent=4, ensure_ascii=False))
     else:
         return None
 
