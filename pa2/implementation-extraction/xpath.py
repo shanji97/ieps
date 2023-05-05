@@ -1,6 +1,4 @@
-import selenium
 import json
-import html2text
 from lxml import html
 
 
