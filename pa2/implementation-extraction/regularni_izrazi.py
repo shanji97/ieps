@@ -36,22 +36,38 @@ def regex_extraction(page, page_content):
         (r"<b>You Save:[\w\W]*?class=\"littleorange\">(.*?)</span>", "Saving"),
         (r"<span class=\"normal\">(.*?)</span>", "Content")
     ]
-
-    html_parser = html2text.HTML2Text()
-    html_parser.ignore_links = True
-    html_parser.ignore_images = True
-    json
-    for match in zip(*(re.findall(pattern, page_content, re.DOTALL) for pattern, _ in regex_list)):
-        json_object = dict(zip((key for _, key in regex_list), match))
-        json_object["Saving percent"] = json_object["Saving"].split(" ")[1]
-        json_object["Saving"] = json_object["Saving"].split(" ")[0]
-        json_object["Content"] = html_parser.handle(json_object["Content"]).replace("\n", "")
-        print(json.dumps(json_object, indent=4, ensure_ascii=False))
-        
-        
+        html_parser = html2text.HTML2Text()
+        html_parser.ignore_links = True
+        html_parser.ignore_images = True
+        jsons = []
+        for match in zip(*(re.findall(pattern, page_content, re.DOTALL) for pattern, _ in regex_list)):
+            json_object = dict(zip((key for _, key in regex_list), match))
+            json_object["Saving percent"] = json_object["Saving"].split(" ")[1]
+            json_object["Saving"] = json_object["Saving"].split(" ")[0]
+            json_object["Content"] = html_parser.handle(json_object["Content"]).replace("\n", "")
+            print(json.dumps(json_object, indent=4, ensure_ascii=False))
     elif page =='studentska_prehrana':
-    
-    else:
-        return None
+        regex_list = [
+        (r"<td><a href=\"http://www\.overstock\.com/cgi-bin/d2\.cgi\?PAGE=PROFRAME[\w\W]*?\"><b>(.*?)</b>", "Title"),
+        (r"<s>(.*?)</s>", "Address"),
+        (r"<span class=\"bigred\"><b>(.*?)</b>", "Price"),
+        (r"<b>You Save:[\w\W]*?class=\"littleorange\">(.*?)</span>", "List price"),
+        (r"<span class=\"normal\">(.*?)</span>", "Work time"),
+        (r"<span class=\"normal\">(.*?)</span>", "Main dish"),
+        (r"<ul class=\"list-unstyled\">(?:\s*<li>.*?</li>){1}\s*<li>.*?<i>(.*?)</i>", "Salad"),
+        ]
+
+        html_parser = html2text.HTML2Text()
+        html_parser.ignore_links = True
+        html_parser.ignore_images = True
+        jsons = []
+        for match in zip(*(re.findall(pattern, page_content, re.DOTALL) for pattern, _ in regex_list)):
+            json_object = dict(zip((key for _, key in regex_list), match))
+            json_object["Saving percent"] = json_object["Saving"].split(" ")[1]
+            json_object["Saving"] = json_object["Saving"].split(" ")[0]
+            json_object["Content"] = html_parser.handle(json_object["Content"]).replace("\n", "")
+            print(json.dumps(json_object, indent=4, ensure_ascii=False))
+        else:
+            return None
     
     return page_object
