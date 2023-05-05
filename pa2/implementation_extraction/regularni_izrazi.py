@@ -10,23 +10,53 @@ def regex_extraction(page, page_content):
             (r"<div class=\"subtitle\">(.*)</div>", "SubTitle"),
             (r"<p class=\"lead\">(.*)</p>", "Lead"),
             (r"<div class=\"author-name\">(.*)</div>", "Author"),
-            (r"<div class=\"publish-meta\">\n\t\t(.*)<br>", "PublishedTime"),
-            (r"<div class=\"article-body\">(.*?)<div class=\"gallery\">", "Content")
+            (r"<div class=\"publish-meta\">\n\t\t(.*)<br>", "PublishedTime")
         ]
 
-        for regex, key in regex_list:
-            pattern = re.compile(regex)
+        content_regex = r"<div class=\"article-body\">(.*?)<div class=\"gallery\">"
+
+        if "Content" in page_object:
+            page_content = page_object["Content"]
+            pattern = re.compile(content_regex, re.DOTALL)
             match = re.findall(pattern, page_content)
             if match:
-                page_object[key] = match[0]
+                page_object["Content"] = match[0]
+                html_parser = html2text.HTML2Text()
+                html_parser.ignore_links = True
+                html_parser.ignore_images = True
+                content = html_parser.handle(page_object["Content"]).replace("\n", " ")
+                page_object["Content"] = content
 
-        html_parser = html2text.HTML2Text()
-        html_parser.ignore_links = True
-        html_parser.ignore_images = True
-        content = html_parser.handle(page_object["Content"]).replace("\n", " ")
-        page_object["Content"] = content
+            for regex, key in regex_list:
+                pattern = re.compile(regex)
+                match = re.findall(pattern, page_content)
+                if match:
+                    page_object[key] = match[0]
 
-        return json.dumps(page_object, indent=4, ensure_ascii=False)
+            print(json.dumps(page_object, indent=4, ensure_ascii=False))
+                    
+        
+        # regex_list = [
+        #     (r"<h1>(.*)</h1>", "Title"),
+        #     (r"<div class=\"subtitle\">(.*)</div>", "SubTitle"),
+        #     (r"<p class=\"lead\">(.*)</p>", "Lead"),
+        #     (r"<div class=\"author-name\">(.*)</div>", "Author"),
+        #     (r"<div class=\"publish-meta\">\n\t\t(.*)<br>", "PublishedTime"),
+        #     (r"<div class=\"article-body\">(.*?)<div class=\"gallery\">", "Content")
+        # ]
+
+        # for regex, key in regex_list:
+        #     pattern = re.compile(regex)
+        #     match = re.findall(pattern, page_content)
+        #     if match:
+        #         page_object[key] = match[0]
+
+        #     html_parser = html2text.HTML2Text()
+        #     html_parser.ignore_links = True
+        #     html_parser.ignore_images = True
+        #     content = html_parser.handle(page_object["Content"]).replace("\n", " ")
+        #     page_object["Content"] = content
+        #     print(json.dumps(page_object, indent=4, ensure_ascii=False))
 
     elif page == 'overstock':
         regex_list = [

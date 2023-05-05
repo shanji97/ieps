@@ -25,7 +25,7 @@ def xpath_extraction(page, page_content):
         print(p)
     elif page == 'overstock':
         jsons = []
-        for i in range(1, len(3)):
+        for i in range(1, 3):
             common_path = f'{common_path}table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[{i}]/td[2]'
             try:
                 data = {}
@@ -41,6 +41,7 @@ def xpath_extraction(page, page_content):
                         data[key] = element[0].text_content().strip().replace(
                             "\t", "").replace("\n", "")
                     jsons.append(data)
+                    print(json.dumps(jsons, indent=4, ensure_ascii=False))
                     error = False
             except:
                 if error:
@@ -48,38 +49,32 @@ def xpath_extraction(page, page_content):
                 else:
                     error = True
                 None
-            
-            print(f"\nIteration:{i}")
-            print(json.dumps(jsons, indent=4, ensure_ascii=False))
+
     elif page == 'studentska_prehrana':
         jsons = []
-        for i in range(1, len(100)):
-            common_path = f'{common_path}div[3]/div[2]'
-            try:
-                data = {}
-                for key, xpath in {
-                    "Locale name": f'{common_path}/div[1]/div[1]/div[2]/div[1]/h3[1]',
-                    "Address": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[1]',
-                    "Price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[2]',
-                    "List price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]',
-                    "Work time": f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]',
-                    "Main dish": f'//strong[@class="color-blue"][{i}]',
-                    "Salad": f'//ul[@class="list-unstyled"][{i}]/li[2]/i[1]'
-                }.items():
-                    element = siteString.xpath(xpath)
-                    if element:
-                        data[key] = element[0].text_content().strip().replace(
-                            "\t", "").replace("\n", "").replace("&nbsp;", "")
-                    jsons.append(data)
-                    error = False
-            except:
-                if error:
-                    break
-                else:
-                    error = True
-                None
-            print(json.dumps(jsons, indent=4, ensure_ascii=False))
+        common_path = f'{common_path}div[3]/div[2]'
+        for i in range(1, 5):
+            dish = f'//strong[@class=" color-blue"][{i}]'
+            salad = f'//ul[@class="list-unstyled"][{i}]/li[2]/i[1]'
+            data = {}
+            for key, xpath in {
+                "Locale name": f'{common_path}/div[1]/div[1]/div[2]/div[1]/h3[1]',
+                "Address": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[1]',
+                "Price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[2]',
+                "List price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]',
+                "Work time": f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]',
+                "Main dish": dish,
+                "Salad": salad
+            }.items():
+                element = siteString.xpath(xpath)
+                # print(element)
+                if len(element) == 0 or element == '[]':
+                    continue
+                print(xpath)
+                if element:
+                    data[key] = element[0].text_content().strip().replace(
+                        "\t", "").replace("\n", "").replace("&nbsp;", "").replace(" ()", "")
+            print(json.dumps(data, indent=4, ensure_ascii=False))
+
     else:
         return None
-
-    return page_object
