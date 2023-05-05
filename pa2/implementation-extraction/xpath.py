@@ -20,8 +20,7 @@ def xpath_extraction(page, page_content):
         }.items():
             element = siteString.xpath(xpath)
             if element:
-                page_object[key] = element[0].text_content(
-                ).strip().replace("\t", "").replace("\n", "")
+                page_object[key] = element[0].text_content().strip().replace("\t", "").replace("\n", "")
 
     elif page == 'overstock':
         jsons = []
@@ -61,12 +60,11 @@ def xpath_extraction(page, page_content):
                     "List price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]',
                     "Work time": f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]',
                     "Main dish": f'//strong[@class="color-blue"][{i}]',
-                    "Salad": f'//ul[@class=list-unstyled][{i}]/li[2]/i[1]'
+                    "Salad": f'//ul[@class="list-unstyled"][{i}]/li[2]/i[1]'
                 }.items():
                     element = siteString.xpath(xpath)
                     if element:
-                        data[key] = element[0].text_content().strip().replace(
-                            "\t", "").replace("\n", "").replace("&nbsp;","")
+                        data[key] = element[0].text_content().strip().replace("\t", "").replace("\n", "").replace("&nbsp;","")
                     jsons.append(data)
             except:
                 if error:
