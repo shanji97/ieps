@@ -1,5 +1,4 @@
 html2text
 json
 lxml
-selenium
 re
