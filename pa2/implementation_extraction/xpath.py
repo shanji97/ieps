@@ -1,12 +1,10 @@
+import selenium
 import json
+import html2text
 from lxml import html
 
-def single_value(site_string, xpath_string):
-    return site_string.xpath(xpath_string)[0].text_content().strip().replace("\t", "").replace("\n", "").replace("&nbsp;", "").replace(" ()", "")
-
-
 def xpath_extraction(page, page_content):
-    site_string = html.fromstring(page_content)
+    siteString = html.fromstring(page_content)
     page_object = {}
     common_path = '/html/body/'
     error = False
@@ -19,11 +17,10 @@ def xpath_extraction(page, page_content):
                         "PublishedTime": '//*[@id="main-container"]/div[3]/div/div[1]/div[2]/text()[1]',
                         "Content": '//*[@id="main-container"]/div[3]/div/div[2]/article',
         }.items():
-            element = site_string.xpath(xpath)
+            element = siteString.xpath(xpath)
             if element:
                 page_object[key] = element[0].text_content(
                 ).strip().replace("\t", "").replace("\n", "")
-        print(p)
     elif page == 'overstock':
         jsons = []
         for i in range(1, 3):
@@ -37,7 +34,7 @@ def xpath_extraction(page, page_content):
                     "Saving": f'{common_path}/table/tbody/tr/td[1]/table/tbody/tr[3]/td[2]/span',
                     "Content": '/html/body/table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[3]/td[2]/table/tbody/tr/td[2]/span/text()'
                 }.items():
-                    element = site_string.xpath(xpath)
+                    element = siteString.xpath(xpath)
                     if element:
                         data[key] = element[0].text_content().strip().replace(
                             "\t", "").replace("\n", "")
@@ -54,37 +51,28 @@ def xpath_extraction(page, page_content):
     elif page == 'studentska_prehrana':
         jsons = []
         common_path = f'{common_path}div[3]/div[2]'
-        data = {}
-        #Static "one time  data."
-        data['Locale name'] = single_value(site_string,f'{common_path}/div[1]/div[1]/div[2]/div[1]/h3[1]')
-        data['Address'] = single_value(site_string,f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[1]')
-        data['Price'] = single_value(site_string,f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[2]')
-        data['List price'] = single_value(site_string,f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]')
-        # data['Work time'] = single_value(site_string,f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]')
-        
-        print(data)
-        # for i in range(1, 5):
-        #     dish = f'//strong[@class=" color-blue"][{i}]'
-        #     salad = f'//ul[@class="list-unstyled"][{i}]/li[2]/i[1]'
-        #     data = {}
-        #     for key, xpath in {
-        #         "Locale name": f'{common_path}/div[1]/div[1]/div[2]/div[1]/h3[1]',
-        #         "Address": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[1]',
-        #         "Price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[2]',
-        #         "List price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]',
-        #         "Work time": f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]',
-        #         "Main dish": dish,
-        #         "Salad": salad
-        #     }.items():
-        #         element = site_string.xpath(xpath)
-        #         # print(element)
-        #         if len(element) == 0 or element == '[]':
-        #             continue
-        #         print(xpath)
-        #         if element:
-        #             data[key] = element[0].text_content().strip().replace(
-        #                 "\t", "").replace("\n", "").replace("&nbsp;", "").replace(" ()", "")
-        #     print(json.dumps(data, indent=4, ensure_ascii=False))
+        for i in range(1, 5):
+            dish = f'//strong[@class=" color-blue"][{i}]'
+            salad = f'//ul[@class="list-unstyled"][{i}]/li[2]/i[1]'
+            data = {}
+            for key, xpath in {
+                "Locale name": f'{common_path}/div[1]/div[1]/div[2]/div[1]/h3[1]',
+                "Address": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[1]',
+                "Price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[2]',
+                "List price": f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]',
+                "Work time": f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]',
+                "Main dish": dish,
+                "Salad": salad
+            }.items():
+                element = siteString.xpath(xpath)
+                # print(element)
+                if len(element) == 0 or element == '[]':
+                    continue
+                print(xpath)
+                if element:
+                    data[key] = element[0].text_content().strip().replace(
+                        "\t", "").replace("\n", "").replace("&nbsp;", "").replace(" ()", "")
+            print(json.dumps(data, indent=4, ensure_ascii=False))
 
     else:
         return None
