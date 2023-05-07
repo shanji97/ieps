@@ -1,0 +1,417 @@
+﻿var services = {
+    1: ".service-1",
+    3: ".service-3",
+    5: ".service-5",
+    7: ".service-7",
+    8: ".service-8",
+    9: ".service-9",
+    10: ".service-10",
+    11: ".service-11",
+    12: ".service-12",
+    13: ".service-13",
+    20: ".service-20",
+    21: ".service-21",
+    22: ".service-22",
+    23: ".service-23",
+    69: ".service-69"
+};
+
+var serviceQuery = "";
+var nameQuery = "";
+var lokalQuery = "";
+var distanceTxT = 5000000;
+var currLokacija = null;
+var pos = null;
+
+function RemoveFilters(element)
+{
+   
+    document.getElementById(1).checked = false;
+    document.getElementById(3).checked = false;
+    document.getElementById(5).checked = false;
+    document.getElementById(7).checked = false;
+    document.getElementById(8).checked = false;
+    document.getElementById(9).checked = false;
+    document.getElementById(10).checked = false;
+    document.getElementById(11).checked = false;
+    document.getElementById(12).checked = false;
+    document.getElementById(13).checked = false;
+    document.getElementById(20).checked = false;
+    document.getElementById(21).checked = false;
+    document.getElementById(22).checked = false;
+    document.getElementById(23).checked = false;
+    document.getElementById(69).checked = false;
+
+    element.checked = true;
+    serviceQuery = "";
+    filter()
+}
+
+function RestaurantFilters(element)
+{
+    if ($(element).is(":checked"))
+    {
+        serviceQuery += services[element.dataset.service];
+    }
+    else
+    {
+        serviceQuery = serviceQuery.replace(services[element.dataset.service], "");
+    }
+
+
+    distanceTxT = (document.getElementById("disttxt").value == 0 || document.getElementById("disttxt").value == "") ? 5000000 : document.getElementById("disttxt").value;
+    nameQuery = document.getElementById("citytxt").value;
+    lokalQuery = document.getElementById("nametxt").value;
+
+    filter()
+}
+
+
+function pofiltriraj()
+{
+   
+    
+
+    distanceTxT = (document.getElementById("disttxt").value == 0 || document.getElementById("disttxt").value == "") ? 5000000 : document.getElementById("disttxt").value;
+    nameQuery = document.getElementById("citytxt").value;
+    lokalQuery = document.getElementById("nametxt").value;
+    filter();
+
+    var lokalckitemp = [];
+    if (distanceTxT != 5000000) {
+        $(".restaurant-row").each(function (index, elementic) {
+            lokalckitemp.push({ id: parseInt(elementic.dataset.posid), razdalja: parseInt(elementic.dataset.distance) });
+        });
+
+        SortByDistance(lokalckitemp);
+    }
+}
+
+function CityFilter(element)
+{
+    
+    nameQuery = element.value;
+    if (nameQuery.length <= 3)
+        return;
+    lokalQuery = document.getElementById("nametxt").value
+    distanceTxT = (document.getElementById("disttxt").value == 0 || document.getElementById("disttxt").value == "")  ? 5000000 : document.getElementById("disttxt").value;
+    doFiltering()
+}
+
+function LokalFilter(element) {
+   
+    lokalQuery = element.value;
+    if (lokalQuery.length <= 3)
+        return;
+    nameQuery = document.getElementById("citytxt").value;
+    distanceTxT = (document.getElementById("disttxt").value == 0 || document.getElementById("disttxt").value == "") ? 5000000 : document.getElementById("disttxt").value;
+    doFiltering()
+}
+
+function SortByDistance(vsilokali) {
+    $.ajax({
+        url: SORT_DISTANCE_URL,
+        type: "POST",
+        data: JSON.stringify(vsilokali),
+        contentType: "application/json; charset=utf-8",
+        success: function (response) {
+            document.getElementById("restaurant-list").innerHTML = response;
+            doFiltering();
+
+        },
+        error: function (response) {
+            HideLoadingScreen();
+        },
+        complete: function () {
+            HideLoadingScreen();
+        }
+    });
+}
+function ChangeSort(element)
+{
+   
+    //getCurrentGPS();
+    //currLokacija = returnCurrentPosition();
+
+    if (!pos)
+    {
+        pos = returnCurrentPosition();
+    }
+
+    ShowLoadingScreen();
+    var lokalcki = [];
+    if (element.value == 3) {
+        $(".restaurant-row").each(function (index, elementic) {
+                lokalcki.push({ id: parseInt(elementic.dataset.posid), razdalja: parseInt(elementic.dataset.distance) });
+        });
+
+         SortByDistance(lokalcki);
+        
+     } else{
+            $.ajax({
+                type: "POST",
+                url: SORT_URL,
+                data: {
+                    sort: element.value
+                },
+                success: function (response) {
+                    document.getElementById("restaurant-list").innerHTML = response;
+                    doFiltering();
+            
+                    if (element.value == 1) {
+                        $(".price-title-navigator").show();
+                        $(".letter-title-navigator").hide();
+                    }
+                    else {
+                        $(".price-title-navigator").hide();
+                        $(".letter-title-navigator").show();
+                    }
+
+                },
+                error: function (response) {
+                    window.open().document.write(response.responseText);
+
+                    HideLoadingScreen();
+                },
+                complete: function () {
+                    HideLoadingScreen();
+                }
+            });
+    }
+}
+
+function showAll() {
+    
+
+    var lokacija;
+    GoogleMap.initGoogleMap(null);
+    lokacija = returnCurrentPosition();
+    var lokali = [];
+    $(".restaurant-row").each(function (index, element) {
+        var spanid = "dist_" + element.dataset.posid;
+        var lokacijDo = new google.maps.LatLng(element.dataset.lat, element.dataset.lon);
+        var razdalja = getDistance(lokacija, lokacijDo);
+        var razdalja2 = razdalja.toFixed(0);
+        document.getElementById(spanid).innerHTML = razdalja2 + ' m';
+        element.dataset.distance = razdalja2;
+
+        pomestu.push({ latitude: element.dataset.lat, longitude: element.dataset.lon, naslov: element.dataset.naslov, name: element.dataset.lokal, cena: element.dataset.cena, doplacilo: element.dataset.doplacilo, link: element.dataset.detailslink });
+    });
+    SetMarkersFilter(pomestu, distanceTxT, null);
+}
+
+function activateFilter(e)
+{
+    if (e.keyCode == 13) {
+    e.preventDefault();
+        filter(); // returning false will prevent the event from bubbling up.
+    }
+}
+
+function filter() {
+    
+    distanceTxT = (document.getElementById("disttxt").value == 0 || document.getElementById("disttxt").value == "") ? 5000000 : document.getElementById("disttxt").value;
+    nameQuery = document.getElementById("citytxt").value;
+    lokalQuery = document.getElementById("nametxt").value;
+
+    
+    //var posByCity = getCenterByCity(nameQuery);
+    if (nameQuery)
+    {
+
+        var geocoder = new google.maps.Geocoder();
+        geocoder.geocode({
+            "address": nameQuery
+        }, function (results) {
+            pos = results[0].geometry.location; //LatLng
+
+            doFiltering();
+         //   document.getElementById("sorting-select-box").selectedIndex = 3;
+	        //ChangeSort(document.getElementById("sorting-select-box"));
+        });
+    } else {
+        setMap();
+        //getCurrentGPS();
+        //pos = returnCurrentPosition();
+        pos = returnCurrentPosition();
+
+        doFiltering();
+        //pos = posByCity;
+        
+    }
+    
+    //if (pos == null)
+    //{ pos = new google.maps.LatLng(46.174695, 14.793849);}
+    
+}
+
+function doFiltering()
+{
+
+    var sortGroups = [];
+
+    var lokali = [];
+    var pomestu = [];
+
+    var fixdist = 10;
+    if (nameQuery == "")
+        fixdist = 50000;
+    else if (nameQuery == "Ljubljana")
+        fixdist = 20;
+ 
+
+    var lokacijDo;
+    $(".restaurant-row").each(function (index, element) {
+
+        var nas = element.dataset.city;
+        var nastrue = false;
+        if (nameQuery == "")
+            nastrue = true;
+        else
+            nastrue = nas.includes(nameQuery.toUpperCase());
+        
+        lokacijDo = new google.maps.LatLng(element.dataset.lat, element.dataset.lon);
+        var razdalja = getDistance(pos, lokacijDo);
+        var razdalja2 = razdalja.toFixed(0);
+
+        
+        var spanid = "dist_" + element.dataset.posid;
+        var distTxt = "";
+        if ((razdalja / 1000).toFixed(2) < 1) {
+            razdalja = Math.round(razdalja);
+            distTxt = "Oddaljenost : " + razdalja + " metrov";
+        } else {
+            razdalja = (razdalja / 1000).toFixed(1);
+            distTxt = "Oddaljenost : " + razdalja + " km";
+        }
+        
+
+        document.getElementById(spanid).innerHTML = distTxt;
+        element.dataset.distance = razdalja2;
+        
+
+        if (($(element).is(serviceQuery) || serviceQuery == "") &&
+            (element.dataset.lokal.indexOf(lokalQuery.toUpperCase()) > -1 //|| lokalQuery == ""
+            ) && (pos != null ? checkIfInRadius(element.dataset.lat, element.dataset.lon, pos, distanceTxT) : true)
+            && nastrue
+        ) {
+
+            $(element).show();
+            sortGroups[element.dataset["sortGroup"]] = true;
+            //lokali.push(element.dataset.posid);
+            pomestu.push({ latitude: element.dataset.lat, longitude: element.dataset.lon, naslov: element.dataset.naslov, name: element.dataset.lokal, cena: element.dataset.cena, doplacilo: element.dataset.doplacilo, link: element.dataset.detailslink });
+        }
+        else {
+            $(element).hide();
+
+            if (!sortGroups[element.dataset["sortGroup"]])
+                sortGroups[element.dataset["sortGroup"]] = false;
+        }
+
+    });
+
+    for (var group in sortGroups) {
+        if (sortGroups[group]) {
+            $(".sort-title-" + group).show();
+            $(".title-navigator.tn-" + group).removeClass("title-navigator-disabled");
+        }
+        else {
+            $(".sort-title-" + group).hide();
+            $(".title-navigator.tn-" + group).addClass("title-navigator-disabled");
+        }
+    }
+
+    SetMarkersFilter(pomestu, distanceTxT, pos);
+}
+
+
+function AddToFavorites(id, element)
+{
+    $.ajax({
+        type: "POST",
+        url: FAVORITE_ADD_URL,
+        data: { restaurantId: id },
+        success: function (response) {
+            if(response == 0)
+            {
+                var $parent = $(element).parent();
+                $(element).remove();
+                $parent.append(RemoveFromFavoritesButton(id));
+            }
+            else
+                console.log(response)
+        },
+        error: function (response) {
+            window.open().document.write(response.responseText);
+        },
+        complete: function () {
+
+        }
+    });
+}
+
+function RemoveFromFavorites(id, element) {
+    $.ajax({
+        type: "POST",
+        url: FAVORITE_RMV_URL,
+        data: { restaurantId: id },
+        success: function (response) {
+            if (response == 0) {
+                var $parent = $(element).parent();
+                $(element).remove();
+                $parent.append(AddToavoritesButton(id));
+            }
+            else
+                console.log(response)
+        },
+        error: function (response) {
+            window.open().document.write(response.responseText);
+        },
+        complete: function () {
+
+        }
+    });
+}
+
+function AddToavoritesButton(id)
+{
+    return '<button title="Add to favorites" data-tpye="1" class="btn-u btn-brd btn-brd-hover rounded-x pull-right btn-u-blue favorite-btn"  onclick="AddToFavorites(' + id + ', this)"> \
+               <i class="fa fa-heart no-margin" ></i > \
+            </button >';
+}
+
+function RemoveFromFavoritesButton(id)
+{
+    return '<button title="Remove from favorites" class="btn-u rounded-x pull-right btn-u-blue favorite-btn" data-type="0" type="button" onclick="RemoveFromFavorites(' + id + ', this)"> \
+               <i class="fa fa-heart no-margin" ></i > \
+            </button >';
+}
+
+function GetMenuForDate(restaurant, date, element)
+{
+    if (!$(element).is(".disabled")) {
+        ShowLoadingScreen();
+
+        $.ajax({
+            type: "POST",
+            url: MENU,
+            data: { restaurantId: restaurant, date: date },
+            success: function (response) {
+                document.getElementById("menu-list").innerHTML = response;
+
+                $(".menu-request-link.disabled").removeClass("btn-info");
+                $(".menu-request-link.disabled").addClass("btn-default");
+                $(".menu-request-link.disabled").removeClass("disabled");
+                $(element).addClass("disabled");
+                $(element).addClass("btn-info");
+
+            },
+            error: function (response) {
+                window.open().document.write(response.responseText);
+            },
+            complete: function () {
+                HideLoadingScreen();
+            }
+        });
+    }
+}
