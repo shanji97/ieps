@@ -16,7 +16,8 @@ overstock_page_2 = open(
 
 studentska_prehrana_page_1 = open(
     "../input-extraction/studentska-prehrana.si/- Študentska prehrana.html").read()
-studentska_prehrana_page_2 = None
+studentska_prehrana_page_2 = open(
+    "../input-extraction/studentska-prehrana.si2/- Študentska prehrana.html").read()
 
 if extraction_algorithm == "A":  # regex
     regularni_izrazi.regex_extraction("rtvslo", rtv_page_1)
@@ -29,18 +30,19 @@ if extraction_algorithm == "A":  # regex
         "studentska_prehrana", studentska_prehrana_page_1)
 
 elif extraction_algorithm == "B":  # xpath
-    # xpath.xpath_extraction(
-    # "rtvslo", rtv_page_1)
-    # xpath.xpath_extraction(
-    # "rtvslo", rtv_page_2)
+    print('Rtv slo')
+    xpath.xpath_extraction(
+        "rtvslo", rtv_page_1)
+    xpath.xpath_extraction(
+        "rtvslo", rtv_page_2)
     print('Overstock.')
     xpath.xpath_extraction(
         "overstock", overstock_page_1)
     xpath.xpath_extraction(
         "overstock", overstock_page_2)
-    # print('Studentska prehrana - custom page one.')
-    # xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_1)
-
+    print('Studentska prehrana.')
+    xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_1)
+    xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_2)
 elif extraction_algorithm == "C":  # road runner
     pass
 else:

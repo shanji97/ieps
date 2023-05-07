@@ -13,18 +13,23 @@ def xpath_extraction(page, page_content):
     error = False
     if page == 'rtvslo':
         for key, xpath in {
-            "Title": '//*[@id="main-container"]/div[3]/div/header/h1',
-            "SubTitle": '//*[@id="main-container"]/div[3]/div/header/div[2]',
-                        "Lead": '//*[@id="main-container"]/div[3]/div/header/p',
-                        "Author": '//*[@id="main-container"]/div[3]/div/div[1]/div[1]/div',
-                        "PublishedTime": '//*[@id="main-container"]/div[3]/div/div[1]/div[2]/text()[1]',
-                        "Content": '//*[@id="main-container"]/div[3]/div/div[2]/article',
+            "Title": '//header[@class="article-header"]/h1',
+            "SubTitle": '//div[@class="subtitle"]',
+                        "Lead": '//p[@class="lead"]',
+                        "Author": '//div[@class="author"]/div',
+                        "PublishedTime": '//div[@class="publish-meta"]/text()[1]',
+                        "Content": '//article[@class="article"]', #regex would be a better option for this case.
         }.items():
             element = site_string.xpath(xpath)
             if element:
-                page_object[key] = element[0].text_content(
-                ).strip().replace("\t", "").replace("\n", "")
-        print(p)
+                if key == "PublishedTime":
+                    page_object[key] = element[0].replace(
+                        "\n", "").replace("\t", "")
+                else:
+                    page_object[key] = element[0].text_content(
+                    ).strip().replace("\t", "").replace("\n", "")
+
+        print(json.dumps(page_object, indent=4, ensure_ascii=False))
     elif page == 'overstock':
         jsons = []
         common_path = f'{common_path}table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[1]/td[2]'
@@ -34,14 +39,13 @@ def xpath_extraction(page, page_content):
             "List price": f'{common_path}/table/tbody/tr/td[1]/table/tbody/tr[1]/td[2]/s',
             "Price": f'/{common_path}/table/tbody/tr/td[1]/table/tbody/tr[2]/td[2]/span/b',
             "Saving": f'{common_path}/table/tbody/tr/td[1]/table/tbody/tr[3]/td[2]/span',
-            "Content": '/html/body/table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[3]/td[2]/table/tbody/tr/td[2]/span/text()'
+            "Content": '/html/body/table[2]/tbody/tr[1]/td[5]/table/tbody/tr[2]/td/table/tbody/tr/td/table/tbody/tr[3]/td[2]/table/tbody/tr/td[2]/span'
         }.items():
             element = site_string.xpath(xpath)
             if element:
                 data[key] = element[0].text_content().strip().replace(
-                    "\t", "").replace("\n", "").replace(" ", "")
-                jsons.append(data)
-                print(json.dumps(jsons, indent=4, ensure_ascii=False))
+                    "\t", "").replace("\n", "")
+        print(json.dumps(data, indent=4, ensure_ascii=False))
 
     elif page == 'studentska_prehrana':
         jsons = []
@@ -57,13 +61,13 @@ def xpath_extraction(page, page_content):
         data['List price'] = single_value(
             site_string, f'{common_path}/div[1]/div[1]/div[2]/div[1]/small[2]/span[4]')
         data['Work time'] = single_value(
-            site_string, f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]')  # need combining with regex to arhieve bese result
+            site_string, f'{common_path}/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[3]/div[1]/div[2]/div[1]')  # need combining with regex to arhieve best result
         data['Salad'] = single_value(
             site_string, '//ul[@class="list-unstyled"][1]/li[2]/i[1]')
         data['Main dish'] = single_value(
             site_string, f'//strong[@class=" color-blue"][1]')
         print(json.dumps(data, indent=4, ensure_ascii=False))
-        
+
         # for i in range(1, 5): #Kako ugotoviti, na mesto, da dati kar neko cifro.
         #     dish = f'//strong[@class=" color-blue"][1]' # Zakaj samo i=1 nekaj izpiše?
         #     salad = f'//ul[@class="list-unstyled"][1]/li[2]/i[1]'
