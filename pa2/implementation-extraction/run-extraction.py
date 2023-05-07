@@ -20,14 +20,21 @@ studentska_prehrana_page_2 = open(
     "../input-extraction/studentska-prehrana.si2/- Študentska prehrana.html").read()
 
 if extraction_algorithm == "A":  # regex
+    print('Rtv slo')
     regularni_izrazi.regex_extraction("rtvslo", rtv_page_1)
     regularni_izrazi.regex_extraction("rtvslo", rtv_page_2)
+    print('Overstock')
+    print('=====================================================================')
+    # # regularni_izrazi.regex_extraction(
+    # #     "overstock", overstock_page_1)
+    # # regularni_izrazi.regex_extraction(
+    # #     "overstock", overstock_page_2)
+    print('Študentska prehrana')
+    print('=====================================================================')
+    # regularni_izrazi.regex_extraction(
+    #     "studentska_prehrana", studentska_prehrana_page_1)
     regularni_izrazi.regex_extraction(
-        "overstock", overstock_page_1)
-    regularni_izrazi.regex_extraction(
-        "overstock", overstock_page_2)
-    regularni_izrazi.regex_extraction(
-        "studentska_prehrana", studentska_prehrana_page_1)
+        "studentska_prehrana", studentska_prehrana_page_2)
 
 elif extraction_algorithm == "B":  # xpath
     print('Rtv slo')
