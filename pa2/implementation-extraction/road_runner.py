@@ -131,17 +131,23 @@ def match(wrapper, sample, new_wrapper, start1, start2):
             if i1 == i2:
                 return None
             elif i1<i2:
+                new_wrapper1 = new_wrapper.copy()
                 for i in range(start1, i1):
-                    new_wrapper.append("(opt) ("+wrapper[i]+")?")
-                f = match(wrapper, sample, new_wrapper, i1, start2 )
-                if f is None:
+                    new_wrapper1.append("(opt) ("+wrapper[i]+")?")
+                f = match(wrapper, sample, new_wrapper1, i1, start2)
+                if f is None and i2 != 100000:
+                    for i in range(start2, i2):
+                        new_wrapper.append("(opt) ("+sample[i]+")?")
                     f = match(wrapper, sample, new_wrapper, start1, i2)
                 return f
             elif i1>i2:
+                new_wrapper1 = new_wrapper.copy()
                 for i in range(start2, i2):
-                    new_wrapper.append("(opt) ("+sample[i]+")?")
-                f = match(wrapper, sample, new_wrapper, start1, i2)
-                if f is None:
+                    new_wrapper1.append("(opt) ("+sample[i]+")?")
+                f = match(wrapper, sample, new_wrapper1, start1, i2)
+                if f is None and i1 != 100000:
+                    for i in range(start1, i1):
+                        new_wrapper.append("(opt) ("+wrapper[i]+")?")
                     f=match(wrapper,sample, new_wrapper, i1,start2)
                 return f
         
