@@ -1,10 +1,6 @@
 import re
 from bs4 import BeautifulSoup, Comment
 
-REGGEX = "<REGGEX>"
-TAG = "<TAG>"
-STRING = "<STRING>"
-
 def simplify(html):
     new_html = ""
     for line in html.split("\n"):
@@ -57,26 +53,3 @@ def clean_html(html):
     new_html = "\n".join(new_html_joined)
 
     return new_html
-
-
-def generate_first_wrapper(cleaned_html):
-    pattern_script = r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>'
-    pattern_style = r'<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>'
-    pattern_comment = r'<!--(.*)-->'
-
-    cleaned_html = re.sub(pattern_script, REGGEX + ' <script(?s:.)*?<\/script>', cleaned_html)
-    cleaned_html = re.sub(pattern_style, REGGEX + ' <style(?s:.)*?<\/style>', cleaned_html)
-    cleaned_html = re.sub(pattern_comment, REGGEX + ' <!--(?s:.)*?-->', cleaned_html)
-
-    cleaned_lines = cleaned_html.split("\n")
-    tagged_lines = ""
-    for line in cleaned_lines:
-        if line.startswith(REGGEX):
-            tagged_lines += line
-        elif line.startswith("<") and line.endswith(">"):
-            tagged_lines += TAG + " " + line
-        else:
-            tagged_lines += STRING + " " + line
-        tagged_lines += "\n"
-
-    return tagged_lines

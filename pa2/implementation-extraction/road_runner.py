@@ -2,22 +2,13 @@ from utils import *
 import sys
 sys.setrecursionlimit(4000)
 
-
-#first_html = open("./pa2/pages/overstock.com/jewelry01.html", 'r').read()
-#second_html = open("./pa2/pages/overstock.com/jewelry02.html", 'r').read()
-
-first_html = open("./pa2/input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html", 'r').read()
-second_html = open("./pa2/input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html", 'r').read()
-
-#first_html = open("./pa2/pages/example1.html", 'r').read()
-#second_html = open("./pa2/pages/example2.html", 'r').read()
-
-first_wrapper = simplify(clean_html(remove_script(first_html)))
-open("./pa2/pages/example1_wrapper.html", 'w').write(first_wrapper)
-first_wrapper_lines = first_wrapper.split("\n")
-second_html = simplify(clean_html(remove_script(second_html)))
-second_html = second_html.split("\n")
-
+def run_road_runner(first_html, second_html):
+    first_wrapper = simplify(clean_html(remove_script(first_html)))
+    first_wrapper_lines = first_wrapper.split("\n")
+    second_html = simplify(clean_html(remove_script(second_html)))
+    second_html = second_html.split("\n")
+    a = match(first_wrapper_lines, second_html, [], 0, 0)
+    return to_regex(a)
 def is_opening(line):
     if isinstance(line,str):
         if line.startswith("</"):
@@ -158,7 +149,6 @@ def to_regex(iterator):
             output += row + "\n"
     return output + ")+"
 
-    
-a = match(first_wrapper_lines, second_html, [], 0, 0)
-print(a)
-print(to_regex(a))
+first_html = open("../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html", 'r').read()
+second_html = open("../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html", 'r').read()
+run_road_runner(first_html, second_html)

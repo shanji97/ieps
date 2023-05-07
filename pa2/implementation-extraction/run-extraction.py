@@ -1,6 +1,7 @@
 import sys
 import regularni_izrazi
 import xpath
+import road_runner
 
 extraction_algorithm = sys.argv[1]
 
@@ -25,33 +26,31 @@ if extraction_algorithm == "A":  # regex
     regularni_izrazi.regex_extraction("rtvslo", rtv_page_2)
     print('Overstock')
     print('=====================================================================')
-    # # regularni_izrazi.regex_extraction(
-    # #     "overstock", overstock_page_1)
-    # # regularni_izrazi.regex_extraction(
-    # #     "overstock", overstock_page_2)
+    # # regularni_izrazi.regex_extraction("overstock", overstock_page_1)
+    # # regularni_izrazi.regex_extraction("overstock", overstock_page_2)
     print('Študentska prehrana')
     print('=====================================================================')
-    # regularni_izrazi.regex_extraction(
-    #     "studentska_prehrana", studentska_prehrana_page_1)
-    regularni_izrazi.regex_extraction(
-        "studentska_prehrana", studentska_prehrana_page_2)
+    # regularni_izrazi.regex_extraction("studentska_prehrana", studentska_prehrana_page_1)
+    regularni_izrazi.regex_extraction("studentska_prehrana", studentska_prehrana_page_2)
 
 elif extraction_algorithm == "B":  # xpath
     print('Rtv slo')
-    xpath.xpath_extraction(
-        "rtvslo", rtv_page_1)
-    xpath.xpath_extraction(
-        "rtvslo", rtv_page_2)
-    print('Overstock.')
-    xpath.xpath_extraction(
-        "overstock", overstock_page_1)
-    xpath.xpath_extraction(
-        "overstock", overstock_page_2)
+    xpath.xpath_extraction("rtvslo", rtv_page_1)
+    xpath.xpath_extraction("rtvslo", rtv_page_2)
+    print('Overstock')
+    xpath.xpath_extraction("overstock", overstock_page_1)
+    xpath.xpath_extraction("overstock", overstock_page_2)
     print('Studentska prehrana.')
     xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_1)
     xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_2)
+
 elif extraction_algorithm == "C":  # road runner
-    pass
+    rtv_regex = road_runner.run_road_runner(rtv_page_1, rtv_page_2)
+    # overstock_regex = road_runner.run_road_runner(overstock_page_1, overstock_page_2)
+    # studentska_prehrana_regex = road_runner.run_road_runner(studentska_prehrana_page_1, studentska_prehrana_page_2)
+
+    print(rtv_regex)
+
 else:
     print("Invalid extraction algorithm")
     sys.exit(1)
