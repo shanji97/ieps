@@ -76,7 +76,7 @@ def combine_iterator(wrapper, iterator_tag, iterator):
     return wrapper
 
 def match(wrapper, sample, new_wrapper, start1, start2):
-    if start1== len(wrapper) or start2 == len(sample):
+    if start1 >= len(wrapper) or start2 >= len(sample):
         return new_wrapper
     wrapper_line = wrapper[start1]
     sample_line = sample[start2]
@@ -133,12 +133,17 @@ def match(wrapper, sample, new_wrapper, start1, start2):
             elif i1<i2:
                 for i in range(start1, i1):
                     new_wrapper.append("(opt) ("+wrapper[i]+")?")
-                return match(wrapper, sample, new_wrapper, i1, start2)
+                f = match(wrapper, sample, new_wrapper, i1, start2 )
+                if f is None:
+                    f = match(wrapper, sample, new_wrapper, start1, i2)
+                return f
             elif i1>i2:
                 for i in range(start2, i2):
                     new_wrapper.append("(opt) ("+sample[i]+")?")
-                return match(wrapper, sample, new_wrapper, start1, i2)
-            return None
+                f = match(wrapper, sample, new_wrapper, start1, i2)
+                if f is None:
+                    f=match(wrapper,sample, new_wrapper, i1,start2)
+                return f
         
 def to_regex(iterator):
     output = "("
@@ -152,3 +157,5 @@ def to_regex(iterator):
 first_html = open("../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html", 'r').read()
 second_html = open("../input-extraction/rtvslo.si/Audi A6 50 TDI quattro_ nemir v premijskem razredu - RTVSLO.si.html", 'r').read()
 run_road_runner(first_html, second_html)
+
+
