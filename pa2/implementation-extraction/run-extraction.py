@@ -9,8 +9,10 @@ rtv_page_1 = open(
 rtv_page_2 = open(
     "../input-extraction/rtvslo.si/Volvo XC 40 D4 AWD momentum_ suvereno med najboljše v razredu - RTVSLO.si.html").read()
 
-overstock_page_1 = open("../input-extraction/overstock.com/jewelry01.html").read()
-overstock_page_2 = open("../input-extraction/overstock.com/jewelry02.html").read()
+overstock_page_1 = open(
+    "../input-extraction/overstock.com/jewelry01.html").read()
+overstock_page_2 = open(
+    "../input-extraction/overstock.com/jewelry02.html").read()
 
 studentska_prehrana_page_1 = open(
     "../input-extraction/studentska-prehrana.si/- Študentska prehrana.html").read()
@@ -31,14 +33,13 @@ elif extraction_algorithm == "B":  # xpath
     # "rtvslo", rtv_page_1)
     # xpath.xpath_extraction(
     # "rtvslo", rtv_page_2)
-    # xpath.xpath_extraction(
-    # "overstock", overstock_page_1)
-    # xpath.xpath_extraction(
-    #     "overstock", overstock_page_2)
-    print('Studentska prehrana - custom page one.')
-    
+    print('Overstock.')
     xpath.xpath_extraction(
-    "studentska_prehrana", studentska_prehrana_page_1)
+        "overstock", overstock_page_1)
+    xpath.xpath_extraction(
+        "overstock", overstock_page_2)
+    # print('Studentska prehrana - custom page one.')
+    # xpath.xpath_extraction("studentska_prehrana", studentska_prehrana_page_1)
 
 elif extraction_algorithm == "C":  # road runner
     pass
