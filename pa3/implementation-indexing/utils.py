@@ -1,14 +1,10 @@
 import re
 from bs4 import BeautifulSoup
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from nltk.corpus import stopwords as sw
+import nltk
 from string import punctuation
 
-
-def create_tables(cursor, conn):
-    cursor.execute("CREATE TABLE IndexWord (word TEXT PRIMARY KEY)")
-    cursor.execute("CREATE TABLE Posting (word TEXT NOT NULL, documentName TEXT NOT NULL, frequency INTEGER NOT NULL, indexes TEXT NOT NULL, PRIMARY KEY (word, documentName), FOREIGN KEY (word) REFERENCES IndexWord(word))")
-    conn.commit()
 
 def truncate_table(cursor, conn):
     cursor.execute("DELETE FROM IndexWord")
@@ -41,27 +37,37 @@ def insert_into_db_many(cursor, conn, insert_dict):
 
 
 def get_html_text(html_file):
+    # NLTK downloads
     # nltk.download('punkt')
+    # nltk.download('stopwords')
+    # nltk.download('wordnet')
+
     soup = BeautifulSoup(html_file, features="html.parser")
     text = soup.get_text()
     text = re.sub(re.compile('<.*?>'), '', text)
 
-    # TODO remove punctuation
+    # Remove punctuation
     text = text.translate(str.maketrans('', '', punctuation))
-    print(text)
-    # TODO remove stopwords (with nltk, spacy, ...)
-    stopwords = set(stopwords.words('slovene'))
-
-    # TODO remove numbers
-
-    # TODO lemmatize (with classla, nltk, spacy, ...)
-
     text = '\n'.join([line.strip()
                      for line in text.splitlines() if line.strip()])
+
+    # Tokenize and tolower the text
     tokenized_text = word_tokenize(text, language='slovene')
     tokenized_text_lower = [word.lower() for word in tokenized_text]
+
+    # Remove stopwords
+    stopwords = set(sw.words('slovene'))
+    removed_stop_words = [
+        word for word in tokenized_text_lower if not word.lower() in stopwords]
+    # Remove numbers and words with numbers in them
+    removed_numbers = [word for word in removed_stop_words if not any(
+        char.isdigit() for char in word)]
+
+    # Lemmatize "removed numbers" with nltk  for slovene
+    # Optional use lemmagen
+    lemmatized_words = [nltk.stem.WordNetLemmatizer().lemmatize(word)
+                        for word in removed_numbers]
     normalized_text = [
         word if word not in punctuation else "PUNCT" for word in tokenized_text_lower]
-    print(normalized_text)
-    print(tokenized_text)
-    return tokenized_text, normalized_text
+
+    return lemmatized_words, normalized_text

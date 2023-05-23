@@ -11,14 +11,18 @@ Follow the instructions below to set up the project:
 
    This command will install all required packages from the `requirements.txt` file. Note that the packages listed below are not present by default, so they need to be installed separately:
 
-   - `html2text`
-   - `lxml`
+   - `nltk`
+   - `sqlite3`
+   - `string`
+   - `re`
+   - `bs4`
 
-
-3. Go to `implementation-extraction` folder and run `run-extraction.py` using the following command:
+3. Go to the `utils.py` file and uncomment (if not done previously) once these lines:
 
     ```sh
-    python run-extraction.py [A|B|C]
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('wordnet')
     ```
 
-   Where A, B and C represent different extraction algorithms. A for regex, B for xpath and C for Road runner.
+After that 
