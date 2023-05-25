@@ -12,29 +12,27 @@ if __name__ == "__main__":
 
     insert_dict = {}
     words_set = ()
-    for subdir, dirs, files in os.walk("../sites/e-uprava.gov.si"):
+    for subdir, dirs, files in os.walk("../sites/"):
         for file in files:
             if file.endswith(".html"):
                 filename = os.path.join(subdir, file)
                 print("Inserting from file: " + filename)
                 html_file = open(filename, 'r',encoding='utf-8').read()
-                tokenized_text, normalized_text = utils.get_html_text(
-                    html_file)
+                _, normalized_text = utils.normalize_text(html_file)
 
                 text_occurance_count = {}
                 for index, word in enumerate(normalized_text):
-                    if word not in text_occurance_count:
-                        text_occurance_count[word] = {}
-                        text_occurance_count[word]["count"] = 1
-                        text_occurance_count[word]["indexes"] = [index]
-                    else:
-                        text_occurance_count[word]["count"] += 1
-                        text_occurance_count[word]["indexes"].append(index)
+                    if word not in ["PUNCT", "STOPWORD", "NUM"]:
+                        if word not in text_occurance_count:
+                            text_occurance_count[word] = {}
+                            text_occurance_count[word]["count"] = 1
+                            text_occurance_count[word]["indexes"] = [index]
+                        else:
+                            text_occurance_count[word]["count"] += 1
+                            text_occurance_count[word]["indexes"].append(index)
 
                 for word in text_occurance_count:
-                    indexes_string = ",".join(
-                        [str(x) for x in text_occurance_count[word]["indexes"]])
-
+                    indexes_string = ",".join([str(x) for x in text_occurance_count[word]["indexes"]])
                     words_set = words_set + (word,)
                     insert_dict[(word, filename)] = (
                         word,

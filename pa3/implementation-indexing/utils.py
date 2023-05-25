@@ -29,45 +29,50 @@ def insert_into_posting(cursor, conn, word, document_name, frequency, indexes):
 
 
 def insert_into_db_many(cursor, conn, insert_dict):
-    cursor.executemany('INSERT INTO IndexWord VALUES (?);', list(
-        set([(item[0], ) for item in insert_dict.keys()])))
-    cursor.executemany(
-        'INSERT INTO Posting VALUES (?, ?, ?, ?);', insert_dict.values())
-    conn.commit()
+    try:
+        cursor.executemany('INSERT INTO IndexWord VALUES (?);', list(
+            set([(item[0], ) for item in insert_dict.keys()])))
+        cursor.executemany(
+            'INSERT INTO Posting VALUES (?, ?, ?, ?);', insert_dict.values())
+        conn.commit()
+    except Exception:
+        pass
 
 
-def get_html_text(html_file):
+
+def tokenize_html_text(html):
+    """
+        Used for sqlite query indexes
+    """
+    soup = BeautifulSoup(html, features="html.parser")
+    text = soup.get_text()
+    text = re.sub(re.compile('<.*?>'), '', text)
+    text = '\n'.join([line.strip() for line in text.splitlines() if line.strip()])
+    return word_tokenize(text, language='slovene')
+
+def normalize_text(html_file):
     # NLTK downloads
     # nltk.download('punkt')
     # nltk.download('stopwords')
     # nltk.download('wordnet')
 
-    soup = BeautifulSoup(html_file, features="html.parser")
-    text = soup.get_text()
-    text = re.sub(re.compile('<.*?>'), '', text)
+    tokenized_text = tokenize_html_text(html_file)
 
-    # Remove punctuation
-    text = text.translate(str.maketrans('', '', punctuation))
-    text = '\n'.join([line.strip()
-                     for line in text.splitlines() if line.strip()])
+    # To lowercase
+    normalized_text = [word.lower() for word in tokenized_text]
 
-    # Tokenize and tolower the text
-    tokenized_text = word_tokenize(text, language='slovene')
-    tokenized_text_lower = [word.lower() for word in tokenized_text]
+    # Remove punct
+    normalized_text = [word if word not in punctuation else "PUNCT" for word in normalized_text]
 
     # Remove stopwords
     stopwords = set(sw.words('slovene'))
-    removed_stop_words = [
-        word for word in tokenized_text_lower if not word.lower() in stopwords]
+    normalized_text = [word if word.lower() not in list(stopwords) else "STOPWORD" for word in normalized_text]
+
     # Remove numbers and words with numbers in them
-    removed_numbers = [word for word in removed_stop_words if not any(
-        char.isdigit() for char in word)]
+    normalized_text = [word if not any(char.isdigit() for char in word) else "NUM" for word in normalized_text]
 
     # Lemmatize "removed numbers" with nltk  for slovene
     # Optional use lemmagen
-    lemmatized_words = [nltk.stem.WordNetLemmatizer().lemmatize(word)
-                        for word in removed_numbers]
-    normalized_text = [
-        word if word not in punctuation else "PUNCT" for word in tokenized_text_lower]
+    normalized_text = [nltk.stem.WordNetLemmatizer().lemmatize(word) for word in normalized_text]
 
-    return lemmatized_words, normalized_text
+    return tokenized_text, normalized_text
