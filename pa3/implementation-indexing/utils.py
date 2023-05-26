@@ -35,8 +35,10 @@ def insert_into_db_many(cursor, conn, insert_dict):
         cursor.executemany(
             'INSERT INTO Posting VALUES (?, ?, ?, ?);', insert_dict.values())
         conn.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        print("Exception when inserting: ")
+        print(e)
+
 
 
 
@@ -73,6 +75,6 @@ def normalize_text(html_file):
 
     # Lemmatize "removed numbers" with nltk  for slovene
     # Optional use lemmagen
-    normalized_text = [nltk.stem.WordNetLemmatizer().lemmatize(word) for word in normalized_text]
+    # normalized_text = [nltk.stem.WordNetLemmatizer().lemmatize(word) for word in normalized_text]
 
     return tokenized_text, normalized_text
