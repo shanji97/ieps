@@ -3,7 +3,8 @@ import sqlite3
 import time
 import sys
 
-conn = sqlite3.connect('inverted-index.db')
+db_filename = 'inverted-index.db'
+conn = sqlite3.connect(db_filename)
 cursor = conn.cursor()
 #_, search_words = normalize_text(" ".join(["Sistem", "SPOT"]))
 

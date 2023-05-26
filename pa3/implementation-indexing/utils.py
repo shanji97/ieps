@@ -11,6 +11,11 @@ def truncate_table(cursor, conn):
     cursor.execute("DELETE FROM Posting")
     conn.commit()
 
+def create_tables(cursor, conn):
+    cursor.execute("CREATE TABLE IndexWord (word TEXT PRIMARY KEY)")
+    cursor.execute("CREATE TABLE Posting (word TEXT NOT NULL, documentName TEXT NOT NULL, frequency INTEGER NOT NULL, indexes TEXT NOT NULL, PRIMARY KEY (word, documentName), FOREIGN KEY (word) REFERENCES IndexWord(word))")
+    conn.commit()
+
 
 def insert_into_word_index(cursor, conn, word):
     res = cursor.execute('SELECT * FROM IndexWord WHERE word=?;', (word,))

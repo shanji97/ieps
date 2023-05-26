@@ -1,14 +1,20 @@
 import os
 import sqlite3
+import sys
 import time
 import utils
 
 html_files_dir = "../sites/"
+db_filename = sys.argv[1]
 files_num = sum([len(files) for r, d, files in os.walk(html_files_dir)])
 files_inserted = 0
 if __name__ == "__main__":
-    conn = sqlite3.connect('inverted-index.db')
+    conn = sqlite3.connect(db_filename)
     cursor = conn.cursor()
+    try:
+        utils.create_tables(cursor, conn)
+    except Exception:
+        pass
     utils.truncate_table(cursor, conn)
 
     start_time = time.time()
