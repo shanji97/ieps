@@ -38,7 +38,7 @@ def get_snippets(filename, indexes):
 
 start = time.time()
 results = []
-for subdir, dirs, files in os.walk("../sites/"):
+for subdir, dirs, files in os.walk("../sites"):
     for file in files:
         if file.endswith(".html"):
             frequency = 0

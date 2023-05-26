@@ -41,6 +41,7 @@ args = " ".join(sys.argv[1:])
 _, search_words = normalize_text(args)
 search_words = [word for word in search_words if word not in ["PUNCT", "STOPWORD", "NUM"]]
 
+print(search_words)
 start = time.time()
 queries = []
 for i, word in enumerate(search_words):

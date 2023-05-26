@@ -3,6 +3,9 @@ import sqlite3
 import time
 import utils
 
+html_files_dir = "../sites/"
+files_num = sum([len(files) for r, d, files in os.walk(html_files_dir)])
+files_inserted = 0
 if __name__ == "__main__":
     conn = sqlite3.connect('inverted-index.db')
     cursor = conn.cursor()
@@ -12,12 +15,14 @@ if __name__ == "__main__":
 
     insert_dict = {}
     words_set = ()
-    for subdir, dirs, files in os.walk("../sites/"):
+    insert_dict_all = {}
+    for subdir, dirs, files in os.walk(html_files_dir):
+        files = sorted(files)
         for file in files:
             if file.endswith(".html"):
                 filename = os.path.join(subdir, file)
-                print("Inserting from file: " + filename)
-                html_file = open(filename, 'r',encoding='utf-8').read()
+                print("Inserting file " + str(files_inserted) + "/" + str(files_num) + " - " + filename)
+                html_file = open(filename, 'r', encoding='utf-8').read()
                 _, normalized_text = utils.normalize_text(html_file)
 
                 text_occurance_count = {}
@@ -41,6 +46,9 @@ if __name__ == "__main__":
                         indexes_string
                     )
 
-        utils.insert_into_db_many(cursor, conn, insert_dict)
+                files_inserted += 1
+
+        insert_dict_all.update(insert_dict)
+    utils.insert_into_db_many(cursor, conn, insert_dict)
 
     print("Inserted in: " + str(time.time() - start_time) + " seconds")
