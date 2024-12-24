@@ -1,0 +1,871 @@
+﻿
+var map;
+var iconBase = '../../../Images/iconApple.png';
+var iconCurrent = '../../../Images/iconMarker.png';
+
+var Ljubljana = "Ljubljana";
+var Maribor = "Maribor";
+var SkLoka = "Škofja Loka";
+var NovoMesto = "Novo Mesto";
+var Koper = "Koper";
+var Piran = "Piran";
+var Celje = "Celje";
+var Bled = "Bled";
+var SlovGradec = "Slovenj Gradec";
+var Ptuj = "Ptuj";
+var MurskaSobota = "Murska Sobota";
+var Gorica = "Gorica";
+var Postojna = "Postojna";
+var Izola = "Izola/Isola";
+
+var GoogleMap = function () {
+
+    var panorama1, panorama2;
+
+    // Return
+    return {
+
+        //Basic Map
+        initGoogleMap: function (tukaj) {
+            var temp = new google.maps.LatLng(46.174695, 14.793849);
+            /* Map */
+            var infoWindow = new google.maps.InfoWindow;
+            var marker = new google.maps.Marker;
+
+
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: temp,
+                zoom: 14
+            });
+
+            if (tukaj == null) {
+
+                // Try HTML5 geolocation.
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function (position) {
+                       
+                        var pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        var marker = new google.maps.Marker({
+                            position: pos,
+                            map: map,
+                            icon: iconCurrent
+                        });
+
+                        //infoWindow.setPosition(pos);
+                        //infoWindow.setContent('Tukaj');
+                        //infoWindow.open(map, marker);
+                        map.setCenter(pos);
+                        map.setZoom(14);
+
+                        currentPosition = new google.maps.LatLng(pos.lat, pos.lng);
+
+                    }, function () {
+                        handleLocationError(true, infoWindow, map.getCenter());
+                    });
+                } else {
+                    // Browser doesn't support Geolocation
+                    handleLocationError(false, infoWindow, map.getCenter());
+                }
+            } else {
+
+                var marker = new google.maps.Marker({
+                    position: tukaj,
+                    map: map,
+                    icon: iconCurrent
+                });
+
+                map.setZoom(12);
+                //infoWindow.setPosition(tukaj);
+                //infoWindow.setContent('Location found.');
+                //infoWindow.open(map, marker);
+                map.setCenter(tukaj);
+            }
+
+        },
+        // End Basic Map
+
+
+
+
+        // Basic Panorama Map 1
+        initPanorama1: function () {
+
+            panorama = new google.maps.StreetViewPanorama(
+                document.getElementById('pano1'),
+                {
+                    position: { lat: 40.748866, lng: -73.988366 },
+                    pov: { heading: 165, pitch: 0 },
+                    zoom: 1
+                }
+            );
+
+        },
+        // End Basic Panorama Map 1
+
+
+        // Basic Panorama Map 2
+        initPanorama2: function () {
+
+            panorama = new google.maps.StreetViewPanorama(
+                document.getElementById('pano2'),
+                {
+                    position: { lat: 42.345573, lng: -71.098326 },
+                    pov: { heading: 165, pitch: 0 },
+                    zoom: 1
+                }
+            );
+
+        },
+        // End Basic Panorama Map 2
+
+    };
+    // End Return
+
+
+
+
+
+}();
+
+
+
+
+function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+
+    infoWindow.setPosition(pos);
+    infoWindow.setContent(browserHasGeolocation ?
+        'Error: The Geolocation service failed.' :
+        'Error: Your browser doesn\'t support geolocation.');
+    infoWindow.open(map);
+}
+
+function SetMarkers(cid) {
+
+    var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: new google.maps.LatLng(46.174695, 14.793849),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+
+    google.maps.event.addListener(map, 'click', function () {
+        infowindow.close();
+    });
+
+    var infowindow;
+    var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var gmarkers = [];
+
+    var marker, i = 0;
+    var locations = [];
+    var iconBase = '../../../Images/iconApple.png';
+    $.getJSON("/Points/GetPointsByCompanyId", { compid: cid }, function (data) {
+        $.each(data, function (i, item) {
+
+            infowindow = new google.maps.InfoWindow();
+
+            marker = new google.maps.Marker({
+                position: new google.maps.LatLng(item.Latitude, item.Longitude),
+                map: map,
+                icon: iconBase
+            });
+
+
+            var info =
+                ('<span class="txt_bld">' + item.Name + '</span> <br />' +
+                    '<span class="txt_bld">' + item.Address + '</span> <br />');
+
+            google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                return function () {
+                    infowindow.setContent(info);
+                    infowindow.open(map, marker);
+                    map.setZoom(map.getZoom());
+                    map.setCenter(marker.getPosition());
+
+                }
+            })(marker, item.Id));
+
+            i++;
+
+
+        });
+    });
+
+}
+
+
+
+
+function createStreetMap() {
+
+    var panorama;
+    var yourLatLng = { lat: -25.363, lng: 131.044 };
+    //once the document is loaded, see if google has a streetview image within 50 meters of the given location, and load that panorama
+    var sv = new google.maps.StreetViewService();
+
+
+    function initialize() {
+        panorama = new google.maps.StreetViewPanorama(
+            document.getElementById('map'),
+            {
+                position: { lat: 37.869260, lng: -122.254811 },
+                pov: { heading: 165, pitch: 0 },
+                zoom: 1
+            });
+    }
+}
+
+var allServ = [];
+
+function MapRestaurantFilters(element) {
+    //alert($(element).is(":checked"));
+
+    if ($(element).is(":checked")) {
+        allServ.push(element.dataset.service);
+    }
+    else {
+        var indexForRemove = allServ.indexOf(element.dataset.service);
+        if (indexForRemove > -1)
+        { allServ.splice(indexForRemove, 1); }
+
+    }
+
+    SetAllMarkersRestaurant();
+}
+
+
+function SetMarkersRestaurant(pid) {
+
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: new google.maps.LatLng(46.174695, 14.793849),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+
+    if (pid != null) {
+        pid = pid.dataset.service;
+    }
+
+ 
+
+    var infowindow;
+    var address;
+
+    $.getJSON("/Restaurant/GetRestaurantsByService", { serviceid: pid }, function (data) {
+
+        $.each(data, function (i, item) {
+            var geocoder = new google.maps.Geocoder();
+            infowindow = new google.maps.InfoWindow();
+
+
+            if (item.Latitude == '') {
+                geocoder.geocode({ 'address': item.Address }, function (results, status) {
+                    if (status == 'OK') {
+
+                        map.setCenter(results[0].geometry.location);
+                        var marker = new google.maps.Marker({
+                            map: map,
+                            position: results[0].geometry.location
+                        });
+                        //save latlng to dB
+                        $.getJSON("/Restaurant/SetGPS", { pid: item.Id, lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() }, function (data) {
+                        });
+
+                    } else {
+                        alert('Geocode was not successful for the following reason: ' + status);
+                    }
+
+                });
+
+            } else {
+                infowindow = new google.maps.InfoWindow();
+                marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.Latitude, item.Longitude),
+                    map: map
+                });
+
+                google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                    return function () {
+                        infowindow.setContent(item.Name);
+                        infowindow.open(map, marker);
+                    }
+                })(marker, i));
+            }
+
+            if (geocoder) {
+                if (typeof position != 'undefined') {
+
+                    geocoder.geocode({ 'latLng': position }, function (results, status) {
+                        if (status == google.maps.GeocoderStatus.OK) {
+                            address = (results[0].formatted_address);
+                        } else {
+                            address = (position.coords.latitude + ', ' + position.coords.longitude);
+                        }
+                        var info =
+                            ('<span class="txt_bld">Location:</span> ' + address
+                                + '<br />' +
+                                '<span class="txt_bld">Accuracy:</span> ' + position.coords.accuracy
+                                + '<br />' +
+                                '<span class="txt_bld">Time:</span> ' + position.timestamp);
+                        infowindow.setContent(info);
+                        infowindow.setPosition(position);
+                        infowindow.open(map, marker);
+                    });
+                }
+            }
+        });
+    });
+}
+
+function SetAllMarkersRestaurant() {
+
+    var servisi = allServ.join(',');
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 12,
+        center: new google.maps.LatLng(46.174695, 14.793849),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+    
+
+    var infowindow;
+    var address;
+
+    $.getJSON("/Restaurant/GetRestaurantsByService", { services: servisi }, function (data) {
+
+        $.each(data, function (i, item) {
+            var geocoder = new google.maps.Geocoder();
+            infowindow = new google.maps.InfoWindow();
+            var iconBase = '../../../Images/iconApple.png';
+
+
+            if (item.Latitude == '') {
+                geocoder.geocode({ 'address': item.Address }, function (results, status) {
+                    if (status == 'OK') {
+
+                        map.setCenter(results[0].geometry.location);
+                        var marker = new google.maps.Marker({
+                            map: map,
+                            position: results[0].geometry.location,
+                            icon: iconBase
+
+                        });
+                        //save latlng to dB
+                        $.getJSON("/Restaurant/SetGPS", { pid: item.Id, lat: results[0].geometry.location.lat(), lng: results[0].geometry.location.lng() }, function (data) {
+                        });
+
+                    } else {
+                        alert('Geocode was not successful for the following reason: ' + status);
+                    }
+
+                });
+
+            } else {
+                infowindow = new google.maps.InfoWindow();
+                marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(item.Latitude, item.Longitude),
+                    map: map,
+                    icon: iconBase
+                });
+
+                google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                    return function () {
+                        infowindow.setContent(item.Name);
+                        infowindow.open(map, marker);
+                    }
+                })(marker, i));
+            }
+
+            if (geocoder) {
+                if (typeof position != 'undefined') {
+
+                    geocoder.geocode({ 'latLng': position }, function (results, status) {
+                        if (status == google.maps.GeocoderStatus.OK) {
+                            address = (results[0].formatted_address);
+                        } else {
+                            address = (position.coords.latitude + ', ' + position.coords.longitude);
+                        }
+                        var info =
+                            ('<span class="txt_bld">Location:</span> ' + address
+                                + '<br />' +
+                                '<span class="txt_bld">Accuracy:</span> ' + position.coords.accuracy
+                                + '<br />' +
+                                '<span class="txt_bld">Time:</span> ' + position.timestamp);
+                        infowindow.setContent(info);
+                        infowindow.setPosition(position);
+                        infowindow.open(map, marker);
+                    });
+                }
+            }
+        });
+    });
+}
+
+function SetGPSTodB() {
+
+    var servisi = allServ.join(',');
+    
+    var infowindow;
+    var address;
+
+  
+
+    $.ajax({
+        type: "POST",
+        url: GET_GPS,
+        data: {
+                  
+        },
+        success: function (data) {
+            $.each(data, function (i, item) {
+                var geocoder = new google.maps.Geocoder();
+                
+                if (item.Latitude == '') {
+                   
+
+                    geocoder.geocode({ 'address': item.Address }, function (results, status) {
+                        
+                            if (status == 'OK') {
+                                
+
+                                $.ajax({
+                                    type: "POST",
+                                    url: SET_GPS,
+                                    data: {
+                                        pid: item.Id,
+                                        lat: results[0].geometry.location.lat(),
+                                        lng: results[0].geometry.location.lng()
+                                    },
+                                    success: function (data) {
+                                    },
+                                    error: function (response) {
+                                        window.open().document.write(response.responseText);
+
+                                        HideLoadingScreen();
+                                    },
+                                    complete: function () {
+                                        HideLoadingScreen();
+                                    }
+                                });
+
+                            } else {
+                                alert('Geocode was not successful for the following reason: ' + status);
+                            }
+
+                        });
+
+                    
+                    
+                            
+
+
+                }
+            });
+
+        },
+        error: function (response) {
+            window.open().document.write(response.responseText);
+
+            HideLoadingScreen();
+        },
+        complete: function () {
+            HideLoadingScreen();
+        }
+    });
+}
+
+function SetMarkersRestaurantName(lokali) {
+
+
+    var lk = lokali.join(',');
+
+
+    map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: new google.maps.LatLng(46.174695, 14.793849),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+    var infowindow;
+
+
+    var address;
+
+    $.getJSON("/Restaurant/GetRestaurantsByPosId", { lokali: lk }, function (data) {
+
+        $.each(data, function (i, item) {
+            var geocoder = new google.maps.Geocoder();
+            infowindow = new google.maps.InfoWindow();
+
+            if (item.Latitude == null) {
+                geocoder.geocode({ 'address': item.Address }, function (results, status) {
+                    if (status == 'OK') {
+                        map.setCenter(results[0].geometry.location);
+                        var marker = new google.maps.Marker({
+                            map: map,
+                            position: results[0].geometry.location
+                        });
+                    } else {
+                        alert('Geocode was not successful for the following reason: ' + status);
+                    }
+
+                });
+            }
+
+            if (geocoder) {
+                if (typeof position != 'undefined') {
+
+                    geocoder.geocode({ 'latLng': position }, function (results, status) {
+                        if (status == google.maps.GeocoderStatus.OK) {
+                            address = (results[0].formatted_address);
+                        } else {
+                            address = (position.coords.latitude + ', ' + position.coords.longitude);
+                        }
+                        var info =
+                            ('<span class="txt_bld">Location:</span> ' + address
+                                + '<br />' +
+                                '<span class="txt_bld">Accuracy:</span> ' + position.coords.accuracy
+                                + '<br />' +
+                                '<span class="txt_bld">Time:</span> ' + position.timestamp);
+                        infowindow.setContent(info);
+                        infowindow.setPosition(position);
+                        infowindow.open(map, marker);
+                    });
+                }
+            }
+        });
+    });
+}
+
+
+function geocodeAddress(geocoder, resultsMap, infoWin, rest, z) {
+    var address = rest.Address;
+    geocoder.geocode({ 'address': address }, function (results, status) {
+        if (status === 'OK') {
+            resultsMap.setCenter(results[0].geometry.location);
+            var marker = new google.maps.Marker({
+                map: resultsMap,
+                position: results[0].geometry.location
+            });
+        } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+        }
+    });
+
+
+    if (geocoder) {
+        geocoder.geocode({ 'latLng': position }, function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                address = (results[0].formatted_address);
+            } else {
+                address = (position.coords.latitude + ', ' + position.coords.longitude);
+            }
+            var info =
+                ('<span class="txt_bld">Location:</span> ' + address
+                    + '<br />' +
+                    '<span class="txt_bld">Accuracy:</span> ' + position.coords.accuracy
+                    + '<br />' +
+                    '<span class="txt_bld">Time:</span> ' + position.timestamp);
+            infowindow.setContent(info);
+            infowindow.setPosition(position);
+            infowindow.open(map);
+        });
+    }
+
+}
+
+
+var lookup = [];
+
+function setMap() {
+
+    var trenutna = returnCurrentPosition();
+    GoogleMap.initGoogleMap(trenutna);
+    //GoogleMap.initGoogleMap(null);
+}
+
+
+function SetMarkersFilter(gpsarr, razdalja, cityLocation) {
+    var zoom = 12;
+    if (razdalja < 1000 || cityLocation != null)
+    { zoom = 14; }
+
+    var trenutna = cityLocation;
+    if (cityLocation == null) {
+        //getCurrentGPS();
+        trenutna = returnCurrentPosition();
+    }
+
+
+
+
+    //map = new google.maps.Map(document.getElementById('map'), {
+    //    zoom: 8,
+    //    mapTypeId: google.maps.MapTypeId.ROADMAP
+    //});
+
+
+    GoogleMap.initGoogleMap(trenutna);
+
+    map.setZoom(zoom);
+    google.maps.event.addListener(map, 'click', function () {
+        infowindow.close();
+    });
+
+    var infowindow;
+    var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    var gmarkers = [];
+
+    var marker, i = 0;
+    var locations = [];
+
+
+    $.each(gpsarr, function (i, item) {
+
+        var info =
+            ('<span class="txt_bld"><a href="' + item.link + '">' + item.name + '</a></span> <br />' +
+                '<span class="txt_bld">' + item.naslov + '</span> <br />' +
+                '<span class="txt_bld"><small>Cena:<b> ' + item.cena + ' </b> ' + ' </small><small>  &nbsp; EUR</small></span> <br />' +
+                '<span class="txt_bld"><small>Doplačilo:<b> ' + item.doplacilo + ' </b> ' + ' </small><small>  &nbsp; EUR</small></span> <br />');
+
+        infowindow = new google.maps.InfoWindow();
+        var lat = parseFloat(item.latitude);
+        var lon = parseFloat(item.longitude);
+        var y = 0.0001;
+        while (!isLocationFree(lat, lon)) {
+            //lat = lat + y;
+            lon = lon + y;
+
+            y = y + 0.0001;
+        }
+
+        lookup.push([lat, lon]);
+
+
+        if (razdalja > 0) {
+
+            primerjalna = new google.maps.LatLng(lat, lon);
+            if (google.maps.geometry.spherical.computeDistanceBetween(trenutna, primerjalna) < razdalja) {
+
+
+
+                marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(lat, lon),
+                    map: map,
+                    icon: iconBase
+                });
+
+                google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                    return function () {
+                        infowindow.setContent(info);
+                        infowindow.open(map, marker);
+                        map.setZoom(map.getZoom());
+                        map.setCenter(marker.getPosition());
+
+                    }
+                })(marker, i));
+
+                i++;
+
+            }
+
+        } else {
+            marker = new google.maps.Marker({
+                position: new google.maps.LatLng(lat, lon),
+                map: map,
+                icon: iconBase
+            });
+
+            google.maps.event.addListener(marker, 'click', (function (marker, i) {
+                return function () {
+                    infowindow.setContent(info);
+                    infowindow.open(map, marker);
+                    map.setZoom(map.getZoom());
+                    map.setCenter(marker.getPosition());
+
+                }
+            })(marker, i));
+
+            i++;
+        }
+
+
+    });
+
+    lookup = [];
+}
+
+
+function codeAddress(latitud, longitud, radij, gmarkers) {
+
+    var radius = radij;
+    var trenutna = new google.maps.LatLng(latitud, longitud);
+    var primerjalna;
+
+    var pozicija = new google.maps.LatLng(46.174695, 14.793849);
+
+
+
+    var map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 8,
+        center: pozicija, //new google.maps.LatLng(46.174695, 14.793849),
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+
+    var bounds = new google.maps.LatLngBounds();
+    for (var i = 0; i < gmarkers.length; i++) {
+        primerjalna = new google.maps.LatLng(gmarkers[i].latitude, gmarkers[i].longitude);
+        if (google.maps.geometry.spherical.computeDistanceBetween(trenutna, primerjalna) < radius) {
+            bounds.extend(gmarkers[i].getPosition())
+            primerjalna.setMap(map);
+        } else {
+            primerjalna.setMap(null);
+        }
+    }
+    map.fitBounds(bounds);
+}
+
+function isLocationFree(lat, lon) {
+    for (var i = 0, l = lookup.length; i < l; i++) {
+        if (lookup[i][0] === lat && lookup[i][1] === lon) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+var currentPosition = null;
+function returnCurrentPosition() {
+    if (currentPosition != null) {
+        return currentPosition;
+    }
+    return new google.maps.LatLng(46.174695, 14.793849);
+}
+
+
+function getCurrentGPS() {
+    var pozicija = new google.maps.LatLng(46.174695, 14.793849);
+
+    GoogleMap.initGoogleMap(null);
+
+    //map = new google.maps.Map(document.getElementById('map'), {
+    //    zoom: 8,
+    //    mapTypeId: google.maps.MapTypeId.ROADMAP
+    //});
+
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (position) {
+            var pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+        }, function () {
+            handleLocationError(true, infoWindow, map.getCenter());
+        })
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+
+
+}
+function returnPosition(position) {
+    var lat = position.coords.latitude;
+    var lng = position.coords.longitude;
+    currentPosition = new google.maps.LatLng(lat, lng);
+}
+function error(err) {
+    console.warn('ERROR(${err.code}): ${err.message}');
+};
+function getCenterByCity(cityStr) {
+
+    var positionGPS = null;
+    if (cityStr != "") {
+        if (Maribor.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.557902, 15.647639);
+            return positionGPS;
+        }
+        if (Ljubljana.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.051393, 14.506123);
+            return positionGPS;
+        }
+        if (SkLoka.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.166384, 14.308020);
+            return positionGPS;
+        }
+        if (NovoMesto.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.803750, 15.165054);
+            return positionGPS;
+        }
+        if (Koper.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.546710, 13.730133);
+            return positionGPS;
+        }
+        if (Piran.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.527709, 13.568486);
+            return positionGPS;
+        }
+        if (Celje.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.228587, 15.263702);
+            return positionGPS;
+        }
+        if (Bled.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.366897, 14.108307);
+            return positionGPS;
+        }
+        if (SlovGradec.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.507064, 15.079394);
+            return positionGPS;
+        }
+        if (Ptuj.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.419504, 15.871162);
+            return positionGPS;
+        }
+
+        if (MurskaSobota.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(46.656288, 16.169366);
+            return positionGPS;
+        }
+        if (Gorica.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.956478, 13.647669);
+            return positionGPS;
+        }
+        if (Postojna.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.774102, 14.211173);
+            return positionGPS;
+        }
+        if (Izola.toUpperCase().indexOf(cityStr.toUpperCase()) != -1) {
+            positionGPS = new google.maps.LatLng(45.541019, 13.657160);
+            return positionGPS;
+        }
+
+    } else {
+        return null;
+    }
+
+
+}
+
+function checkIfInRadius(primerjajLat, primerjajLng, trenutna, razdalja) {
+
+
+    primerjalna = new google.maps.LatLng(primerjajLat, primerjajLng);
+
+    var res = google.maps.geometry.spherical.computeDistanceBetween(trenutna, primerjalna) < razdalja;
+
+    return res;
+}
+
+
+function getDistance(from, to) {
+    return google.maps.geometry.spherical.computeDistanceBetween(from, to);
+}
